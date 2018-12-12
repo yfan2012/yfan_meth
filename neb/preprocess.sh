@@ -106,7 +106,7 @@ if [ $1 == train ] ; then
     ##neb19 was used to test this code, so excluding it from the list below
     ##unmeth is just too hard to deal with. Doing that one on it's own
 
-    for i in 171005_neb12 171012_neb13 170906_neb14 171020_neb15 171003_neb16 171019_neb17 ;
+    for i in 171020_neb11 171019_neb17 ;
     do
 	if [ $i == 171005_neb12 ] ; then
 	    enzyme=pspjdri
@@ -141,3 +141,5 @@ if [ $1 == train ] ; then
 	
     done
 fi
+
+
