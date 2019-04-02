@@ -1,11 +1,10 @@
 #!/bin/bash
 
 ##generalized dcm.sh for all other meth samps
-prefix=$2
-genome=$3
-datadir=/scratch/groups/mschatz1/cpowgs/meth/$prefix
-srcdir=~/Code/utils/marcc
 
+srcdir=~/Code/utils/marcc
+##gDNA="171020_neb11 171005_neb12 171012_neb13 170906_neb14 171020_neb15 171003_neb16 171019_neb17 171019_neb19 180628_neb_dcm"
+gDNA='180628_neb_dcm'
 
 if [ $1 == untar ] ; then
     mkdir -p $datadir/raw
@@ -21,10 +20,15 @@ if [ $1 == call ] ; then
 fi
 
 if [ $1 == fastq ] ; then
-    mkdir -p $datadir/fastqs
-    cat $datadir/called/*/workspace/pass/*fastq > $datadir/fastqs/$prefix.pass.fastq
-    cat $datadir/called/*/workspace/fail/*fastq > $datadir/fastqs/$prefix.fail.fastq
-    cat $datadir/called/*/workspace/*/*fastq > $datadir/fastqs/$prefix.all.fastq
+    for prefix in $gDNA ;
+    do
+	echo $prefix
+	datadir=/scratch/groups/mschatz1/cpowgs/meth/$prefix
+	mkdir -p $datadir/fastqs
+	cat $datadir/called/*/workspace/pass/*fastq > $datadir/fastqs/$prefix.fq
+	cat $datadir/called/*/workspace/fail/*fastq > $datadir/fastqs/$prefix.fail.fq
+	cat $datadir/called/*/workspace/*/*fastq > $datadir/fastqs/$prefix.all.fq
+    done
 fi
 
 if [ $1 == align ] ; then
@@ -35,29 +39,40 @@ if [ $1 == align ] ; then
 fi
 
 if [ $1 == npidx ] ; then
-    mkdir -p $datadir/eventalign
-    rm -f $datadir/eventalign/workspace.fofn
-    touch $datadir/eventalign/workspace.fofn
-
-    for i in $datadir/called/*/sequencing_summary.txt ;
+    for prefix in $gDNA ;
     do
-	echo $i >> $datadir/eventalign/workspace.fofn
-    done
+	(datadir=/scratch/groups/mschatz1/cpowgs/meth/$prefix
+	mkdir -p $datadir/fastqs
+	rm -f $datadir/fastqs/workspace.fofn
+	touch $datadir/fastqs/workspace.fofn
+	
+	for i in $datadir/called/*/sequencing_summary.txt ;
+	do
+	    echo $i >> $datadir/fastqs/workspace.fofn
+	done
 
-    seqtk seq -a $datadir/fastqs/$prefix.fq > $datadir/fastqs/$prefix.pass.fa
-    nanopolish index -d $datadir/raw -f $datadir/eventalign/workspace.fofn $datadir/fastqs/$prefix.pass.fa
+	seqtk seq -a $datadir/fastqs/$prefix.fq > $datadir/fastqs/$prefix.fa
+	nanopolish index -d $datadir/raw -f $datadir/eventalign/workspace.fofn $datadir/fastqs/$prefix.fa ) &
+    done
 fi
 
 
 if [ $1 == eventalign ] ; then
-    ml samtools
-    samtools index $datadir/align/$prefix.pass.sorted.bam
-    nanopolish eventalign \
-	       --scale-events \
-	       -t 36 \
-	       -r $datadir/fastqs/$prefix.pass.fa \
-	       -b $datadir/align/$prefix.pass.sorted.bam \
-	       -g $ref > $datadir/eventalign/$prefix.pass.eventalign.tsv
+
+    basedir=/scratch/groups/mschatz1/cpowgs/meth
+    storedir=/work-zfs/mschatz1/cpowgs/analysis/meth/neb/eventalign
+    ref=$basedir/refs/er2796.fasta
+    mkdir -p $storedir
+    for prefix in $gDNA ;
+    do
+	datadir=/scratch/groups/mschatz1/cpowgs/meth/$prefix
+	nanopolish eventalign \
+		   --scale-events \
+		   -t 72 \
+		   -r $datadir/fastqs/$prefix.fa \
+		   -b $datadir/align/$prefix.sorted.bam \
+		   -g $ref > $storedir/$prefix.eventalign.tsv
+    done
 fi
     
 if [ $1 == subalign ] ; then

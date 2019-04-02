@@ -2,7 +2,7 @@
 
 datadir=/scratch/groups/mschatz1/cpowgs/meth/180628_neb_dcm
 srcdir=~/Code/utils/marcc
-ref=$datadir/ecoli_er2796.fasta
+ref=/scratch/groups/mschatz1/cpowgs/meth/refs/er2796.fasta
 
 if [ $1 == untar ] ; then
     mkdir -p $datadir/raw
@@ -54,7 +54,7 @@ if [ $1 == eventalign ] ; then
 	       -t 36 \
 	       -r $datadir/fastqs/180628_neb_dcm.pass.fa \
 	       -b $datadir/align/180628_neb_dcm.pass.sorted.bam \
-	       -g $ref > $datadir/eventalign/180628_neb_dcm.pass.eventalign.tsv
+	       -g $ref > $datadir/eventalign/180628_neb_dcm.eventalign.tsv
 fi
     
 if [ $1 == subalign ] ; then

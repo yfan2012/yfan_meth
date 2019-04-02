@@ -8,7 +8,7 @@ srcdir=~/Code/utils/marcc
 datadir=/scratch/groups/mschatz1/cpowgs/meth
 ref=${datadir}ref/ecoli_er2796.fasta 
 
-gDNA="171020_neb11 171005_neb12 171012_neb13 170906_neb14 171020_neb15 171003_neb16 171019_neb17 171019_neb19"
+gDNA="171020_neb11 171005_neb12 171012_neb13 170906_neb14 171020_neb15 171003_neb16 171019_neb17 171019_neb19 180628_neb_dcm"
 plasmids="180104_neb1 170922_neb2 180104_neb3 180104_neb4 170922_neb5 171122_neb6 180104_neb8 171122_neb9"
 
 if [ $2 == gDNA ] ; then
@@ -142,4 +142,18 @@ if [ $1 == train ] ; then
     done
 fi
 
-
+if [ $1 == assemble ] ; then
+    ##if assembly doesn't exist, submit canu
+    for i in $samps ;
+    do
+	mkdir -p $datadir/$i/canu_assembly
+	if [ ! -f $datadir/$i/canu_assembly/$i.contigs.fasta ] ; then
+	    canu \
+		-p $i -d $datadir/$i/canu_assembly \
+		-gridOptions="--time=22:00:00 --account=mschatz1 --partition=parallel" \
+		genomeSize=4.6m \
+		-nanopore-raw $datadir/$i/fastqs/$i.fq
+	fi
+    done
+fi
+	
