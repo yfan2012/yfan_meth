@@ -144,6 +144,7 @@ fi
 
 if [ $1 == assemble ] ; then
     ##if assembly doesn't exist, submit canu
+    ml gnuplot
     for i in $samps ;
     do
 	mkdir -p $datadir/$i/canu_assembly
@@ -157,3 +158,47 @@ if [ $1 == assemble ] ; then
     done
 fi
 	
+if [ $1 == fix_canu ] ; then
+    ml gnuplot
+    ##171012_neb13 ran out of time
+    canu \
+	-p 171012_neb13 -d $datadir/171012_neb13/canu_assembly \
+	-gridOptions="--time=48:00:00 --account=mschatz1 --partition=parallel" \
+	genomeSize=4.6m \
+	-nanopore-raw $datadir/171012_neb13/fastqs/171012_neb13.fq
+
+    ##171020_neb15 ran out of time
+    canu \
+	-p 171020_neb15 -d $datadir/171020_neb15/canu_assembly \
+	-gridOptions="--time=48:00:00 --account=mschatz1 --partition=parallel" \
+	genomeSize=4.6m \
+	-nanopore-raw $datadir/171020_neb15/fastqs/171020_neb15.fq
+
+    ##180628_neb_dcm had some weird mem error at unitigging. changed the unitigger.sh to submit
+    canu \
+	-p 180628_neb_dcm -d $datadir/180628_neb_dcm/canu_assembly \
+	-gridOptions="--time=22:00:00 --account=mschatz1 --partition=parallel" \
+	genomeSize=4.6m \
+	-nanopore-raw $datadir/180628_neb_dcm/fastqs/180628_neb_dcm.fq
+
+    ##171019_neb17 had some weird mem error at unitigging. changed the unitigger.sh to submit
+    canu \
+	-p 171019_neb17 -d $datadir/171019_neb17/canu_assembly \
+	-gridOptions="--time=22:00:00 --account=mschatz1 --partition=parallel" \
+	genomeSize=4.6m \
+	-nanopore-raw $datadir/171019_neb17/fastqs/171019_neb17.fq
+fi    
+    
+if [ $1 == fix_neb13 ] ; then
+   ml gnuplot
+
+   ##neb13 is still bitchy, so isolate reads higher than 2kb and redo
+   rm -r $datadir/171012_neb13/canu_assembly
+   python ~/Code/utils/fastq_long.py -i $datadir/171012_neb13/fastqs/171012_neb13.fq -o $datadir/171012_neb13/fastqs/171012_neb13_2kb.fq -l 2000
+
+   canu \
+       -p 171012_neb13 -d $datadir/171012_neb13/canu_assembly \
+       -gridOptions="--time=48:00:00 --account=mschatz1 --partition=parallel" \
+       genomeSize=4.6m \
+       -nanopore-raw $datadir/171012_neb13/fastqs/171012_neb13_2kb.fq
+fi

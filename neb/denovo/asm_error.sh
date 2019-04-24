@@ -32,9 +32,9 @@ if [ $1 == diffs ] ; then
 	    echo finding enriched motifs for $i
 	    mkdir -p $datadir/$i/asm_diffs
 	    rm $datadir/$i/asm_diffs/*
-	    python ~/Code/utils/motif_enrich.py -s $datadir/$i/mummer/$i.snps -r $ref -m 6 -o $datadir/$i/asm_diffs/$i.ref.6mer.csv
-	    python ~/Code/utils/motif_enrich.py -s $datadir/$i/mummer/$i.snps -r $ref -m 5 -o $datadir/$i/asm_diffs/$i.ref.5mer.csv
-	    python ~/Code/utils/motif_enrich.py -s $datadir/$i/mummer/$i.snps -r $ref -m 4 -o $datadir/$i/asm_diffs/$i.ref.4mer.csv
+	    python ~/Code/utils/meth/motif_enrich.py -s $datadir/$i/mummer/$i.snps -r $ref -m 6 -o $datadir/$i/asm_diffs/$i.ref.6mer.csv
+	    python ~/Code/utils/meth/motif_enrich.py -s $datadir/$i/mummer/$i.snps -r $ref -m 5 -o $datadir/$i/asm_diffs/$i.ref.5mer.csv
+	    python ~/Code/utils/meth/motif_enrich.py -s $datadir/$i/mummer/$i.snps -r $ref -m 4 -o $datadir/$i/asm_diffs/$i.ref.4mer.csv
 	fi
     done
 fi
@@ -55,4 +55,18 @@ if [ $1 == sortdiffs ] ; then
 fi
 
 	
+if [ $1 == listdiffs ] ; then
+    ml python/2.7
+    ##print out a txt file listing seqs of length 16 which are involved in some kind of sindel business
+    ##for EM analysis
+    for i in $samps ;
+    do
+	if [ -f $datadir/$i/mummer/$i.snps ] ; then
+	    mkdir -p $datadir/asm_diffs
+	    python findmotif.py -s $datadir/$i/mummer/$i.snps -r $ref -l 6 -o $datadir/$i/asm_diffs/$i.12merlist.txt
+	fi
+    done
+fi
+
+	    
 	    
