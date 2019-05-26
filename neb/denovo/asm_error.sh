@@ -68,5 +68,17 @@ if [ $1 == listdiffs ] ; then
     done
 fi
 
-	    
+
+if [ $1 == sepstrands ] ; then
+    ml samtools
+    for i in $samps ;
+    do
+	samtools view -f 16 $datadir/$i/align/$i.sorted.bam | awk '{print $1}' > $datadir/$i/fastqs/rev_reads.txt
+	seqtk subseq $datadir/$i/fastqs/$i.fq $datadir/$i/fastqs/rev_reads.txt > $datadir/$i/fastqs/${i}_rev.fq
+	samtools view -F 16 $datadir/$i/align/$i.sorted.bam | awk '{print $1}' > $datadir/$i/fastqs/for_reads.txt
+	seqtk subseq $datadir/$i/fastqs/$i.fq $datadir/$i/fastqs/for_reads.txt > $datadir/$i/fastqs/${i}_for.fq
+    done
+fi
+
+    
 	    

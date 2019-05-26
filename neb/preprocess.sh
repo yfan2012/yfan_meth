@@ -194,11 +194,11 @@ if [ $1 == fix_neb13 ] ; then
 
    ##neb13 is still bitchy, so isolate reads higher than 2kb and redo
    rm -r $datadir/171012_neb13/canu_assembly
-   python ~/Code/utils/fastq_long.py -i $datadir/171012_neb13/fastqs/171012_neb13.fq -o $datadir/171012_neb13/fastqs/171012_neb13_2kb.fq -l 2000
+   python ~/Code/utils/fastq_long.py -i $datadir/171012_neb13/fastqs/171012_neb13.fq -o $datadir/171012_neb13/fastqs/171012_neb13_5kb.fq -l 5000
 
    canu \
        -p 171012_neb13 -d $datadir/171012_neb13/canu_assembly \
        -gridOptions="--time=48:00:00 --account=mschatz1 --partition=parallel" \
        genomeSize=4.6m \
-       -nanopore-raw $datadir/171012_neb13/fastqs/171012_neb13_2kb.fq
+       -nanopore-raw $datadir/171012_neb13/fastqs/171012_neb13_5kb.fq
 fi
