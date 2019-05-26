@@ -38,3 +38,11 @@ if [ $1 == gnu_resort ] ; then
 	fi
     done
 fi
+
+
+if [ $1 == eventalign_to_bed ] ; then
+    ##rn, just a record of how to change eventalign to bed files
+    ##on whack, delete last three cols, then duplicated the second column so the thing looks lik
+    awk '{NF-=3}1' 171003_neb16.eventalign.sorted.tsv > 171003_neb16.eventalign.short.sorted.tsv
+    awk '{$2=$2"\t"$2}1' OFS=$'\t' test.txt
+fi
