@@ -4,7 +4,8 @@ def find_motif(fasta_dictionary, motif):
     positions={}
     for i in fasta_dictionary:
         positions[i]=[m.start() for m in re.finditer(motif, fasta_dictionary[i])]
-        sys.stdout.write(i)
+        ##sys.stdout.write(i)
+        short=i.split(' ')[0][1:]
         for j in positions[i]:
             sys.stdout.write(str(j)+'\n')
 
