@@ -1,6 +1,7 @@
 #!/bin/bash
 
-dat=/data/yfan
+##dat=/data/yfan
+dat=~/data
 mod=$2
 old_letter=$3
 new_letter=$4
@@ -86,4 +87,43 @@ fi
 if [ $1 == map_read_file ] ; then
     ##have to copy the pretrained model from the example data
     prepare_mapped_reads.py --jobs 24 --mod $new_letter $old_letter $mod $dat/$mod/all_raw/multiraw $dat/$mod/train/modbase.tsv $dat/$mod/train/modbase.hdf5 $dat/pretrained/r941_dna_minion.checkpoint $dat/$mod/all_raw/all.ref.fasta
+fi
+
+
+if [ $1 == train1 ] ; then
+    ##train_flipflop.py --device 'cuda:1' ~/software/taiyaki/models/mGru_flipflop.py $dat/$mod/train/training $dat/$mod/train/modbase.hdf5
+    train_mod_flipflop.py --device 1 --mod_factor 0.01 --outdir $dat/$mod/train/training_mod ~/software/taiyaki/models/mGru_cat_mod_flipflop.py $dat/$mod/train/modbase.hdf5
+fi
+
+
+if [ $1 == train2 ] ; then
+    train_mod_flipflop.py --device 1 --mod_factor 1.0 --outdir $dat/$mod/train/training_mod2 $dat/$mod/train/training_mod/model_final.checkpoint $dat/$mod/train/modbase.hdf5
+fi
+
+if [ $1 == test_make_multi ] ; then
+    for i in $mod unmeth ;
+    do
+	mkdir -p $dat/test_${mod}/$i/multiraw
+	single_to_multi_fast5 -t 36 -i $dat/test_$mod/$i/raw -s $dat/test_$mod/$i/multiraw --recursive
+    done
+fi
+
+if [ $1 == test_pick_50 ] ; then
+    for i in $mod unmeth ;
+    do
+	for j in {0..49} ;
+	do
+	    mv $dat/test_$mod/$i/multiraw/batch_$j.fast5 $dat/test_$mod/$i/multiraw/${i}_batch_$j.fast5
+	done
+	rm $dat/test_$mod/$i/multiraw/batch*
+    done
+fi
+
+
+if [ $1 == test_call ] ; then
+    for i in $mod unmeth ;
+    do
+	mkdir -p $dat/test_$mod/$i/basecall
+	basecall.py --device 0 --modified_base_output $dat/test_$mod/$i/basecall/basecalls.hdf5 $dat/test_$mod/$i/multiraw $dat/$mod/training_mod2/model_final.checkpoint > $dat/test_$mod/$i/basecall/basecalls.fa
+    done
 fi
