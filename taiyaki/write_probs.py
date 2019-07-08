@@ -11,10 +11,11 @@ def get_cond_probs(bcfile):
     rnames=np.array(hfreads)
     allprobs=[]
     count=0
+    ##checkhere
     for i in rnames:
         condprobs=hf['Reads/'+i]
         methprobs=condprobs[np.ndarray.tolist(np.where(~np.isnan(condprobs))[0])]
-        allprobs+=np.ndarray.tolist(methprobs)
+        allprobs+=[str(x[0]) for x in np.ndarray.tolist(methprobs)]
         count+=1
         if count % 10000 == 0:
             print(str(count))
@@ -26,7 +27,7 @@ def main(bcfile, outfile):
     write out a list of meth cond probs
     '''
     probs=get_cond_probs(bcfile)
-    open(outfile, 'w').write('\n'.join([str(i) for i in probs]))
+    open(outfile, 'w').write('\n'.join(probs))
 
 
 if __name__ == '__main__':
