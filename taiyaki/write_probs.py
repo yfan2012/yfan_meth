@@ -10,15 +10,16 @@ def get_cond_probs(bcfile):
     hfreads=hf.get('Reads')
     rnames=np.array(hfreads)
     allprobs=[]
-    count=0
-    ##checkhere
+    numreads=0
+    ##===================limit to 10k reads rn because it won't write more than 30k for some reason??? ===============
     for i in rnames:
-        condprobs=hf['Reads/'+i]
+        if len(rnames)>0:
+            condprobs=hf['Reads/'+i]
         methprobs=condprobs[np.ndarray.tolist(np.where(~np.isnan(condprobs))[0])]
         allprobs+=[str(x[0]) for x in np.ndarray.tolist(methprobs)]
-        count+=1
-        if count % 10000 == 0:
-            print(str(count))
+        numreads+=1
+        if numreads % 10000 == 0:
+            print(str(numreads))
     return allprobs
 
 
