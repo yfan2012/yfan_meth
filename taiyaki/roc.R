@@ -12,14 +12,14 @@ ucpgfile='~/data/test_cpg/unmeth_condprobs.txt'
 damfile='~/data/test_dam/dam_condprobs.txt'
 udamfile='~/data/test_dam/unmeth_condprobs.txt'
 
-cpg=read.table(cpgfile)
-colnames(cpg)=c('prob')
+cpg=read.table(cpgfile, sep=',')
+colnames(cpg)=c('prob', 'context')
 
 
 getconfusion <- function(methfile, unmethfile) {
-    meth=read_tsv(methfile, col_names=c('prob')) %>%
+    meth=read_csv(methfile, col_names=c('prob','context')) %>%
         mutate(meth=TRUE)
-    unmeth=read_tsv(unmethfile, col_names=c('prob')) %>%
+    unmeth=read_csv(unmethfile, col_names=c('prob', 'context')) %>%
         mutate(meth=FALSE)
     all=rbind(meth, unmeth)
 
@@ -30,7 +30,7 @@ getconfusion <- function(methfile, unmethfile) {
     confusions=foreach(i=1:length(thresholds), .combine=rbind) %dopar% {
         thresh=thresholds[i]
 
-        call=all$prob < thresh
+        call=all$prob > thresh
         tp=call & all$meth
         fp=call & !all$meth
 
@@ -50,11 +50,14 @@ damconf$motif='dam'
 allconf=rbind(cpgconf, damconf)
 
 
-rocfile='~/Dropbox/yfan/methylation/taiyaki/methcall_rev_roc.pdf'
+rocfile='~/Dropbox/yfan/methylation/taiyaki/methcall_roc.pdf'
 
 pdf(rocfile, height=8.5, width=11)
 ggplot(allconf, aes(x=fpr, y=tpr, colour=motif)) +
     geom_line() +
+    geom_abline(slope=1, intercept=0) +
+    xlim(0,1) +
+    ylim(0,1) +
     ggtitle('Taiyaki ROC') +
     xlab('False Positive Rate') +
     ylab('True Positive Rate') +
