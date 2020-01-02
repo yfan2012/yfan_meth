@@ -7,11 +7,11 @@ registerDoParallel(cl, cores=10)
 
 
 ##read in stuff
-datadir='/kyber/Data/Nanopore/projects/taiyaki_yfan/'
-cpgfile=paste0(datadir, 'test_cpg/cpg_condprobs.txt')
-ucpgfile=paste0(datadir, 'test_cpg/unmeth_condprobs.txt')
-damfile=paste0(datadir, 'test_dam/dam_condprobs.txt')
-udamfile=paste0(datadir, 'test_dam/unmeth_condprobs.txt')
+taidir='/kyber/Data/Nanopore/projects/taiyaki_yfan/'
+cpgfile=paste0(taidir, 'test_cpg/cpg_condprobs.txt')
+ucpgfile=paste0(taidir, 'test_cpg/unmeth_condprobs.txt')
+damfile=paste0(taidir, 'test_dam/dam_condprobs.txt')
+udamfile=paste0(taidir, 'test_dam/unmeth_condprobs.txt')
 
 cpg=read.table(cpgfile, sep=',')
 colnames(cpg)=c('prob', 'context')
