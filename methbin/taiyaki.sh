@@ -119,33 +119,53 @@ if [ $1 == get_example ] ; then
     cp ~/software/taiyaki/taiyaki_modbase/pretrained/r941_dna_minion.checkpoint $datadir/train/
 fi
 
-    
-if [ $1 == map_read_file ] ; then
-    ##have to copy the pretrained model from the example data
+if [ $1 == cp_raw ] ; then
+    cp $datadir/multiraw_sub/neb11/*fast5 $datadir/multiraw_sub/neb12/
 
+    ##5mc
+    for i in neb14 neb15 neb16 nebdcm;
+    do
+	cp $datadir/multiraw_sub/neb11/*fast5 $datadir/multiraw_sub/$i/
+    done
+
+    ##6mA
+    for i in neb17 neb19 ;
+    do
+	cp $datadir/multiraw_sub/neb11/*fast5 $datadir/multiraw_sub/$i/
+    done
+    
+fi
+
+    
+if [ $1 == map_read_file_4mc ] ; then
+    ##have to copy the pretrained model from the example data (see get_example)
+    
     ##neb12 is the only 4mC (X to C)  
     prepare_mapped_reads.py \
 	--overwrite \
 	--jobs 24 \
 	--mod X C neb12 \
-	$datadir/multiraw \
-	$datadir/train/neb12/neb12_modbase.tsv \
-	$datadir/train/neb12/neb12_modbase.hdf5 \
+	$datadir/multiraw_sub/neb12 \
+	$datadir/train/neb12/neb12_100k_modbase.tsv \
+	$datadir/train/neb12/neb12_100k_modbase.hdf5 \
 	$datadir/train/r941_dna_minion.checkpoint \
-	$datadir/read_ref/neb12/neb12_all200k.ref.fasta
+	$datadir/read_ref/neb12/neb12_100k_all.ref.fasta
+fi
 
     ##5mC samples
-    for i in neb13 neb14 neb15 neb16 ;
+    ##for i in neb13 neb14 neb15 neb16 nebdcm;
+if [ $1 == map_read_file ] ; then
+    for i in neb14 neb15 neb16 nebdcm;
     do
 	prepare_mapped_reads.py \
 	    --overwrite \
 	    --jobs 24 \
 	    --mod Y C $i \
-	    $datadir/multiraw \
-	    $datadir/train/$i/${i}_modbase.tsv \
-	    $datadir/train/$i/${i}_modbase.hdf5 \
+	    $datadir/multiraw_sub/$i \
+	    $datadir/train/$i/${i}_100k_modbase.tsv \
+	    $datadir/train/$i/${i}_100k_modbase.hdf5 \
 	    $datadir/train/r941_dna_minion.checkpoint \
-	    $datadir/read_ref/$i/${i}_all200k.ref.fasta
+	    $datadir/read_ref/$i/${i}_100k_all.ref.fasta
     done
 
     ##6mA samples
@@ -155,10 +175,10 @@ if [ $1 == map_read_file ] ; then
 	    --overwrite \
 	    --jobs 24 \
 	    --mod Z A $i \
-	    $datadir/multiraw \
-	    $datadir/train/$i/${i}_modbase.tsv \
-	    $datadir/train/$i/${i}_modbase.hdf5 \
+	    $datadir/multiraw_sub/$i \
+	    $datadir/train/$i/${i}_100k_modbase.tsv \
+	    $datadir/train/$i/${i}_100k_modbase.hdf5 \
 	    $datadir/train/r941_dna_minion.checkpoint \
-	    $datadir/read_ref/$i/${i}_all200k.ref.fasta
+	    $datadir/read_ref/$i/${i}_100k_all.ref.fasta
     done
 fi

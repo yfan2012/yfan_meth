@@ -45,4 +45,13 @@ if [ $1 == flatraw ] ; then
     done
 fi
 
-
+if [ $1 == preprocess ] ; then
+    for i in $datadir/raw/* ;
+    do
+	prefix=`echo $i | rev | cut -d / -f 1 | rev`
+	echo $prefix
+	tombo preprocess annotate_raw_with_fastqs \
+	      --fast5-basedir $i \
+	      --fastq-filenames $datadir/fastqs/$prefix/${prefix}_40k.fq
+    done
+fi
