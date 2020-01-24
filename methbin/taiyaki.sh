@@ -1,6 +1,6 @@
 #!/bin/bash
 
-datadir=/uru/Data/Nanopore/projects/methbin
+datadir=~/data/methbin
 gdna="neb11 neb12 neb13 neb14 neb15 neb16 neb17 neb19 nebdcm"
 
 if [ $1 == cp_sub ] ; then
@@ -10,7 +10,7 @@ if [ $1 == cp_sub ] ; then
 	prefix=`echo $i | rev | cut -d / -f 1 | rev`
 	mkdir -p $datadir/multiraw_sub/$prefix
 
-	for j in {1..25} ;
+	for j in {1..50} ;
 	do
 	    if [ -f $i/${prefix}_$j.fast5 ] ; then
 		cp $i/${prefix}_$j.fast5 $datadir/multiraw_sub/$prefix/
@@ -28,12 +28,11 @@ if [ $1 == gatherfq ] ; then
     do
 	prefix=`echo $i | rev | cut -d / -f 1 | rev`
 	mkdir -p $datadir/fastqs/$prefix
-	for j in {1..25} ;
+	for j in {1..50} ;
 	do
 	    cat $datadir/called/$prefix/*_${j}_*fastq >> $datadir/fastqs/$prefix/${prefix}_100k.fq
 	done
     done
-    
 fi
 
 
@@ -99,10 +98,30 @@ if [ $1 == catref ] ; then
     ##model needs to recognize unmodified bases also, so each set of training reads needs 
     for i in $gdna ;
     do
-	cat $datadir/read_ref/$i/${i}_100k.ref.fasta $datadir/read_ref/neb11/neb11_100k.ref.fasta > $datadir/read_ref/$i/${i}_100k_all.ref.fasta &
+	rm $datadir/read_ref/$i/${i}_100k_all.ref.fasta 
+	head -n 200000 $datadir/read_ref/$i/${i}_100k.ref.fasta > $datadir/read_ref/$i/${i}_100k_all.ref.fasta
+	head -n 200000 $datadir/read_ref/neb11/neb11_100k.ref.fasta >> $datadir/read_ref/$i/${i}_100k_all.ref.fasta 
     done
 fi
 
+if [ $1 == cp_raw ] ; then
+    ##copy unmeth raw data to meth raw data
+    ##not using for loop to save the time of copying neb11 to itself
+    
+    cp $datadir/multiraw_sub/neb11/*fast5 $datadir/multiraw_sub/neb12/
+
+    ##5mc
+    for i in neb13 neb14 neb15 neb16 nebdcm;
+    do
+	cp $datadir/multiraw_sub/neb11/*fast5 $datadir/multiraw_sub/$i/
+    done
+
+    ##6mA
+    for i in neb17 neb19 ;
+    do
+	cp $datadir/multiraw_sub/neb11/*fast5 $datadir/multiraw_sub/$i/
+    done
+fi
 
 if [ $1 == get_params ] ; then
     mkdir -p $datadir/train
@@ -119,31 +138,13 @@ if [ $1 == get_example ] ; then
     cp ~/software/taiyaki/taiyaki_modbase/pretrained/r941_dna_minion.checkpoint $datadir/train/
 fi
 
-if [ $1 == cp_raw ] ; then
-    cp $datadir/multiraw_sub/neb11/*fast5 $datadir/multiraw_sub/neb12/
-
-    ##5mc
-    for i in neb14 neb15 neb16 nebdcm;
-    do
-	cp $datadir/multiraw_sub/neb11/*fast5 $datadir/multiraw_sub/$i/
-    done
-
-    ##6mA
-    for i in neb17 neb19 ;
-    do
-	cp $datadir/multiraw_sub/neb11/*fast5 $datadir/multiraw_sub/$i/
-    done
-    
-fi
-
-    
-if [ $1 == map_read_file_4mc ] ; then
+if [ $1 == 4mc_map_read_file ] ; then
     ##have to copy the pretrained model from the example data (see get_example)
     
     ##neb12 is the only 4mC (X to C)  
     prepare_mapped_reads.py \
 	--overwrite \
-	--jobs 24 \
+	--jobs 36 \
 	--mod X C neb12 \
 	$datadir/multiraw_sub/neb12 \
 	$datadir/train/neb12/neb12_100k_modbase.tsv \
@@ -152,14 +153,15 @@ if [ $1 == map_read_file_4mc ] ; then
 	$datadir/read_ref/neb12/neb12_100k_all.ref.fasta
 fi
 
+
+if [ $1 == 5mc_map_read_file ] ; then
     ##5mC samples
     ##for i in neb13 neb14 neb15 neb16 nebdcm;
-if [ $1 == map_read_file ] ; then
-    for i in neb14 neb15 neb16 nebdcm;
+    for i in nebdcm
     do
 	prepare_mapped_reads.py \
 	    --overwrite \
-	    --jobs 24 \
+	    --jobs 36 \
 	    --mod Y C $i \
 	    $datadir/multiraw_sub/$i \
 	    $datadir/train/$i/${i}_100k_modbase.tsv \
@@ -167,18 +169,33 @@ if [ $1 == map_read_file ] ; then
 	    $datadir/train/r941_dna_minion.checkpoint \
 	    $datadir/read_ref/$i/${i}_100k_all.ref.fasta
     done
+fi
 
+
+if [ $1 == 6ma_map_read_file ] ; then
     ##6mA samples
     for i in neb17 neb19 ;
     do
 	prepare_mapped_reads.py \
 	    --overwrite \
-	    --jobs 24 \
+	    --jobs 36 \
 	    --mod Z A $i \
 	    $datadir/multiraw_sub/$i \
 	    $datadir/train/$i/${i}_100k_modbase.tsv \
 	    $datadir/train/$i/${i}_100k_modbase.hdf5 \
 	    $datadir/train/r941_dna_minion.checkpoint \
 	    $datadir/read_ref/$i/${i}_100k_all.ref.fasta
+    done
+fi
+
+
+if [ $1 == 4mc_train ] ; then
+    for i in neb12 ;
+    do
+	mkdir -p $datadir/train/$i/training
+	train_mod_flipflop.py --overwrite --device 0 --mod_factor 0.01 --outdir $datadir/train/$i/training ~/software/taiyaki/models/mGru_cat_mod_flipflop.py $datadir/train/$i/${i}_100k_modbase.hdf5
+
+	mkdir -p $datadir/train/$i/training2
+	train_mod_flipflop.py --overwrite --device 0 --mod_factor 1.0 --outdir $datadir/train/$i/training2 $datadir/train/$i/training/model_final.checkpoint $datadir/train/$i/${i}_modbase.hdf5
     done
 fi

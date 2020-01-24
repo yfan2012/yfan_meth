@@ -1,0 +1,126 @@
+/uru/Data/Nanopore/projects/methbin/read_ref/neb11/neb11_100k.bam
+107776 + 0 in total (QC-passed reads + QC-failed reads)
+0 + 0 secondary
+7776 + 0 supplementary
+0 + 0 duplicates
+97462 + 0 mapped (90.43% : N/A)
+0 + 0 paired in sequencing
+0 + 0 read1
+0 + 0 read2
+0 + 0 properly paired (N/A : N/A)
+0 + 0 with itself and mate mapped
+0 + 0 singletons (N/A : N/A)
+0 + 0 with mate mapped to a different chr
+0 + 0 with mate mapped to a different chr (mapQ>=5)
+/uru/Data/Nanopore/projects/methbin/read_ref/neb12/neb12_100k.bam
+105220 + 0 in total (QC-passed reads + QC-failed reads)
+0 + 0 secondary
+5220 + 0 supplementary
+0 + 0 duplicates
+91177 + 0 mapped (86.65% : N/A)
+0 + 0 paired in sequencing
+0 + 0 read1
+0 + 0 read2
+0 + 0 properly paired (N/A : N/A)
+0 + 0 with itself and mate mapped
+0 + 0 singletons (N/A : N/A)
+0 + 0 with mate mapped to a different chr
+0 + 0 with mate mapped to a different chr (mapQ>=5)
+/uru/Data/Nanopore/projects/methbin/read_ref/neb13/neb13_100k.bam
+105542 + 0 in total (QC-passed reads + QC-failed reads)
+0 + 0 secondary
+5542 + 0 supplementary
+0 + 0 duplicates
+81382 + 0 mapped (77.11% : N/A)
+0 + 0 paired in sequencing
+0 + 0 read1
+0 + 0 read2
+0 + 0 properly paired (N/A : N/A)
+0 + 0 with itself and mate mapped
+0 + 0 singletons (N/A : N/A)
+0 + 0 with mate mapped to a different chr
+0 + 0 with mate mapped to a different chr (mapQ>=5)
+/uru/Data/Nanopore/projects/methbin/read_ref/neb14/neb14_100k.bam
+112245 + 0 in total (QC-passed reads + QC-failed reads)
+0 + 0 secondary
+12245 + 0 supplementary
+0 + 0 duplicates
+95721 + 0 mapped (85.28% : N/A)
+0 + 0 paired in sequencing
+0 + 0 read1
+0 + 0 read2
+0 + 0 properly paired (N/A : N/A)
+0 + 0 with itself and mate mapped
+0 + 0 singletons (N/A : N/A)
+0 + 0 with mate mapped to a different chr
+0 + 0 with mate mapped to a different chr (mapQ>=5)
+/uru/Data/Nanopore/projects/methbin/read_ref/neb15/neb15_100k.bam
+102719 + 0 in total (QC-passed reads + QC-failed reads)
+0 + 0 secondary
+2719 + 0 supplementary
+0 + 0 duplicates
+89382 + 0 mapped (87.02% : N/A)
+0 + 0 paired in sequencing
+0 + 0 read1
+0 + 0 read2
+0 + 0 properly paired (N/A : N/A)
+0 + 0 with itself and mate mapped
+0 + 0 singletons (N/A : N/A)
+0 + 0 with mate mapped to a different chr
+0 + 0 with mate mapped to a different chr (mapQ>=5)
+/uru/Data/Nanopore/projects/methbin/read_ref/neb16/neb16_100k.bam
+107915 + 0 in total (QC-passed reads + QC-failed reads)
+0 + 0 secondary
+7915 + 0 supplementary
+0 + 0 duplicates
+95358 + 0 mapped (88.36% : N/A)
+0 + 0 paired in sequencing
+0 + 0 read1
+0 + 0 read2
+0 + 0 properly paired (N/A : N/A)
+0 + 0 with itself and mate mapped
+0 + 0 singletons (N/A : N/A)
+0 + 0 with mate mapped to a different chr
+0 + 0 with mate mapped to a different chr (mapQ>=5)
+/uru/Data/Nanopore/projects/methbin/read_ref/neb17/neb17_100k.bam
+106926 + 0 in total (QC-passed reads + QC-failed reads)
+0 + 0 secondary
+6926 + 0 supplementary
+0 + 0 duplicates
+93259 + 0 mapped (87.22% : N/A)
+0 + 0 paired in sequencing
+0 + 0 read1
+0 + 0 read2
+0 + 0 properly paired (N/A : N/A)
+0 + 0 with itself and mate mapped
+0 + 0 singletons (N/A : N/A)
+0 + 0 with mate mapped to a different chr
+0 + 0 with mate mapped to a different chr (mapQ>=5)
+/uru/Data/Nanopore/projects/methbin/read_ref/neb19/neb19_100k.bam
+107493 + 0 in total (QC-passed reads + QC-failed reads)
+0 + 0 secondary
+7493 + 0 supplementary
+0 + 0 duplicates
+90731 + 0 mapped (84.41% : N/A)
+0 + 0 paired in sequencing
+0 + 0 read1
+0 + 0 read2
+0 + 0 properly paired (N/A : N/A)
+0 + 0 with itself and mate mapped
+0 + 0 singletons (N/A : N/A)
+0 + 0 with mate mapped to a different chr
+0 + 0 with mate mapped to a different chr (mapQ>=5)
+/uru/Data/Nanopore/projects/methbin/read_ref/nebdcm/nebdcm_100k.bam
+146569 + 0 in total (QC-passed reads + QC-failed reads)
+0 + 0 secondary
+46865 + 0 supplementary
+0 + 0 duplicates
+134366 + 0 mapped (91.67% : N/A)
+0 + 0 paired in sequencing
+0 + 0 read1
+0 + 0 read2
+0 + 0 properly paired (N/A : N/A)
+0 + 0 with itself and mate mapped
+0 + 0 singletons (N/A : N/A)
+0 + 0 with mate mapped to a different chr
+0 + 0 with mate mapped to a different chr (mapQ>=5)
