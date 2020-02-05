@@ -3,6 +3,7 @@
 rawdir=/dilithium/Data/Nanopore/oxford
 datadir=/uru/Data/Nanopore/projects/methbin
 
+
 if [ $1 == make_multi ] ; then
     ##untar the raw data, make the multifast5s, and delete the single fast5s
     mkdir -p $datadir/multiraw
@@ -47,7 +48,7 @@ if [ $1 == rename ] ; then
     rename 's/neb12mod/neb14/' $datadir/multiraw/neb14/*.fast5
 
     mv $datadir/multiraw/neb16mod $datadir/multiraw/neb16
-    rename 's/neb16mod/neb12/' $datadir/multiraw/neb16/*.fast5
+    rename 's/neb16mod/neb16/' $datadir/multiraw/neb16/*.fast5
     
     mv $datadir/multiraw/neb $datadir/multiraw/nebdcm
     rename 's/neb/nebdcm/' $datadir/multiraw/nebdcm/*.fast5
