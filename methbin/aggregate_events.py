@@ -3,9 +3,12 @@ import argparse
 import sys
 import multiprocessing as mp
 import argparse
+import re
+import scipy
+import math
 from scipy import stats
 sys.path.insert(1, '/home/yfan/Code/utils')
-import pysam
+from fasta_utils import fasta_dict
 
 parser=argparse.ArgumentParser(description='calculate event pvals')
 parser.add_argument('-r', '--ref', type=str, required=True, help='reference aligned to for nanopolish')
@@ -14,6 +17,7 @@ parser.add_argument('-d', '--dists', type=str, required=True, help='model file')
 parser.add_argument('-m', '--motif', type=str, required=True, help='mod motif. standard iupac nucleotide codes')
 parser.add_argument('-o', '--out', type=str, required=True, help='output file for kmer pvals')
 parser.add_argument('-p', '--pout', type=str, required=True, help='output file for pvals aggregated across each read')
+parser.add_argument('-t', '--threads', type=int, required=True, help='number of threads to use')
 args=parser.parse_args()
 
 iupacnt={
@@ -55,6 +59,8 @@ def find_motifs(reffile, motifs, motiflen):
             for i in re.finditer(motif, fastadict[seq]):
                 motifpos[seq].extend(range(i.start()-motiflen,i.start()+motiflen)) 
             ##motifpos[seq]+=[i.start() for i in re.finditer(motif, fastadict[seq])]
+        for i in motifpos:
+            motifpos[i]=list(set(motifpos[i]))
     return motifpos
 
 
@@ -87,12 +93,12 @@ def read_index(indexfile):
     return readidx
 
 
-def per_read_pvals(collapsefile, byteoffset, bytelen, model, q, r):
+def per_read_pvals(collapsefile, byteoffset, bytelen, motifpos, model, q, r):
     '''
     get collapsed file and index info
     return [readnum, chrom, refpos, kmer, pval] and [read_id, loglik]
     '''
-    with open(collapsefile, 'rb') as f:
+    with open(collapsefile, 'r') as f:
         f.seek(byteoffset, 0)
         readcontent=f.read(bytelen).split('\n')
         f.close()
@@ -109,14 +115,18 @@ def per_read_pvals(collapsefile, byteoffset, bytelen, model, q, r):
             kmervals.append([readnum, readchr, i.split('\t')[0], i.split('\t')[1], str(pval)])
     agg=0
     revagg=0
-    strkmvervals=''
+    strkmervals=''
     for i in kmervals:
-        agg+=math.log(i[4],10)
-        revagg+=math.log(1-i[4],10)
+        agg+=math.log(float(i[4]),10)
+        revagg+=math.log(1-float(i[4]),10)
         strkmervals+='\t'.join(i)+'\n'
-    aggratio=agg/revagg
+    try:
+        aggratio=agg/revagg
+    except ZeroDivisionError:
+        aggratio=agg/(revagg+.0001)
+        print(str(readnum)+ ': sum of pvals is 0?')
     q.put(strkmervals)
-    r.put('\t'.join([str(readnum), str(aggratio)]+'\n'))
+    r.put('\t'.join([str(readnum), str(aggratio)])+'\n')
 
     
 def listener(q, outfile):
@@ -133,26 +143,28 @@ def listener(q, outfile):
 
             
 #https://stackoverflow.com/questions/13446445/python-multiprocessing-safely-writing-to-a-file
-def main(reffile, motifs, collapsefile, modelfile):
+def main(reffile, motifs, collapsefile, modelfile, koutfile, poutfile):
     model=read_model(modelfile)
-    positions=find_motifs(reffile, motifs, motiflen)
+    motiflen=6
+    allmotifs=expand_motifs([motifs])
+    motifpos=find_motifs(reffile, allmotifs, motiflen)
     indexfile=collapsefile+'.idx'
     readidx=read_index(indexfile)
 
     manager=mp.Manager()
     q=manager.Queue()
     r=manager.Queue()
-    pool=mp.Pool(36)
+    pool=mp.Pool(args.threads)
 
     ##listener is like a capaciter for stuff that needs to be written to a file
-    qwatcher=pool.apply_async(qlistener, (q,kvalfile))
-    rwatcher=pool.apply_async(rlistener, (r,pvalfile))
+    qwatcher=pool.apply_async(listener, (q,koutfile))
+    rwatcher=pool.apply_async(listener, (r,poutfile))
     
     ##start jobs whose results will accumulate in the watcher
     jobs=[]
     for i in readidx:
         if readidx[i][0] > 2000:
-            job=pool.apply_async(per_read_pvals, (collapsefile, readidx[i][1], readidx[i][2], model, q, r))
+            job=pool.apply_async(per_read_pvals, (collapsefile, readidx[i][1], readidx[i][2], motifpos, model, q, r))
             jobs.append(job)
 
     ##I guess this bit actually runs the jobs? idk
@@ -167,7 +179,7 @@ def main(reffile, motifs, collapsefile, modelfile):
 
 
 if __name__ == "__main__":
-    main(args.ref, args.motif, args.col, args.mod)
+    main(args.ref, args.motif, args.col, args.dists, args.out, args.pout)
   
  
     
