@@ -159,7 +159,40 @@ if [ $1 == 4mc_train ] ; then
     for i in neb12 ;
     do
 	mkdir -p $datadir/train/$i/training
-	##train_mod_flipflop.py --overwrite --device 0 --mod_factor 0.01 --outdir $datadir/train/$i/training ~/software/taiyaki/models/mGru_cat_mod_flipflop.py $datadir/train/$i/${i}_100k_modbase.hdf5
+	train_mod_flipflop.py --overwrite --device 0 --mod_factor 0.01 --outdir $datadir/train/$i/training \
+			      ~/software/taiyaki/models/mGru_cat_mod_flipflop.py \
+			      $datadir/train/$i/${i}_100k_modbase.hdf5
+
+	mkdir -p $datadir/train/$i/training2
+	train_mod_flipflop.py --overwrite --device 0 --mod_factor 1.0 --outdir $datadir/train/$i/training2 \
+			      $datadir/train/$i/training/model_final.checkpoint \
+			      $datadir/train/$i/${i}_100k_modbase.hdf5
+    done
+fi
+
+
+if [ $1 == 5mc_train ] ; then
+    for i in neb13 neb14 neb15 neb16 nebdcm ;
+    do
+	mkdir -p $datadir/train/$i/training
+	train_mod_flipflop.py --overwrite --device 0 --mod_factor 0.01 --outdir $datadir/train/$i/training \
+			      ~/software/taiyaki/models/mGru_cat_mod_flipflop.py \
+			      $datadir/train/$i/${i}_100k_modbase.hdf5
+
+	mkdir -p $datadir/train/$i/training2
+	train_mod_flipflop.py --overwrite --device 0 --mod_factor 1.0 --outdir $datadir/train/$i/training2 \
+			      $datadir/train/$i/training/model_final.checkpoint \
+			      $datadir/train/$i/${i}_100k_modbase.hdf5
+    done
+fi
+
+if [ $1 == 6ma_train ] ; then
+    for i in neb17 neb19 ;
+    do
+	mkdir -p $datadir/train/$i/training
+	train_mod_flipflop.py --overwrite --device 0 --mod_factor 0.01 --outdir $datadir/train/$i/training \
+			      ~/software/taiyaki/models/mGru_cat_mod_flipflop.py \
+			      $datadir/train/$i/${i}_100k_modbase.hdf5
 
 	mkdir -p $datadir/train/$i/training2
 	train_mod_flipflop.py --overwrite --device 0 --mod_factor 1.0 --outdir $datadir/train/$i/training2 \

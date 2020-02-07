@@ -42,4 +42,37 @@ if [ $1 == 4mc_call ] ; then
     done
 fi
 
-    
+if [ $1 == 6ma_call ] ; then
+    for i in neb19 neb9 neb11 ;
+    do
+	mkdir -p $datadir/calls/neb12/$i
+	megalodon $datadir/multiraw_test/$i \
+		  --taiyaki-model-filename $model \
+		  --reference $ref \
+		  --devices 0 \
+		  --outputs mod_basecalls mods \
+		  --mod-motif X CCGG 0 \
+		  --write-mods-text \
+		  --processes 18 \
+		  --overwrite \
+		  --verbose-read-progress 3 \
+		  --output-directory $datadir/calls/neb12/$i
+    done
+
+
+    for i in neb17 neb6 neb11 ;
+    do
+	mkdir -p $datadir/calls/neb12/$i
+	megalodon $datadir/multiraw_test/$i \
+		  --taiyaki-model-filename $model \
+		  --reference $ref \
+		  --devices 0 \
+		  --outputs mod_basecalls mods \
+		  --mod-motif X CCGG 0 \
+		  --write-mods-text \
+		  --processes 18 \
+		  --overwrite \
+		  --verbose-read-progress 3 \
+		  --output-directory $datadir/calls/neb12/$i
+    done
+fi
