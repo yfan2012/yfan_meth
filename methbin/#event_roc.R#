@@ -5,11 +5,9 @@ library(foreach)
 cl=makeCluster(10)
 registerDoParallel(cl, cores=10)
 
-datadir='~/data/methbin/calls/'
-samps=tibble(gDNA=c('neb12', 'neb13', 'neb14', 'neb15', 'neb16', 'neb17', 'neb19'), 
+datadir='/uru/Data/Nanopore/projects/methbin/eventalign_collapsed/'
+samps=tibble(gDNA=c('neb12', 'neb13', 'neb14', 'neb15', 'neb16', 'neb17', 'neb19'),
              plas=c('neb2', 'neb3', 'neb10', 'neb4', 'neb5', 'neb6', 'neb9'))
-
-
 
 
 getconfusion <- function(methfile, unmethfile) {
@@ -50,10 +48,20 @@ for (i in 1:dim(samps)[1]) {
     plsfile=paste0(datadir, samps$gDNA[i], '/', samps$plas[i], '/per_read_modified_base_calls.txt')
     ctrfile=paste0(datadir, samps$gDNA[i], '/neb11/per_read_modified_base_calls.txt')
 
-    conf=getconfusion(plsfile, ctrfile)
-    pdf('~/Dropbox/yfan/methylation/tmp.pdf')
-    ggplot(conf, aes(x=fpr, y=tpr)) +
-        geom_line() +
+    plasconf=getconfusion(plsfile, ctrfile)
+    plasconf$samp='plasmid'
+
+
+    modconf=getconfusion(modfile, ctrfile)
+    modconf$samp='gDNA'
+
+    plotconf=rbind(modconf, plasconf)
+    plotconf$mtase=samps$gDNA[i]
+
+    plotfile=paste0('~/Dropbox/yfan/methylation/methbin/taiyaki/roc_', samps$gDNA[i], '.pdf')
+    pdf(plotfile)
+    ggplot(plotconf, aes(x=fpr, y=tpr, colour=mtase)) +
+        geom_line(aes(linetype=samp)) +
         geom_abline(slope=1, intercept=0) +
         xlim(0,1) +
         ylim(0,1) +
@@ -61,9 +69,5 @@ for (i in 1:dim(samps)[1]) {
         ylab('True Positive Rate') +
         theme_bw()
     dev.off()
-    
-
-   
-
-
+}
 
