@@ -103,16 +103,17 @@ def per_read_pvals(collapsefile, byteoffset, bytelen, motifpos, model, q, r):
         readcontent=f.read(bytelen).split('\n')
         f.close()
     kmervals=[]
-    chrom='>gi|730582171|gb|CP009644.1| Escherichia coli ER2796, complete genome'
-    readnum=readcontent[0].split('\t')[0]
-    readchr=readcontent[0].split('\t')[1]
-    for i in readcontent[2:]:
-        ##if the position is relevant, get info. This part needs to be changed for multi chr refs
-        if int(i.split('\t')[0]) in motifpos[chrom]:
-            eventmean=float(i.split('\t')[6])
-            zval=(eventmean-float(model[i.split('\t')[1]][0]))/float(model[i.split('\t')[1]][1])
-            pval=scipy.stats.norm.sf(abs(zval))*2
-            kmervals.append([readnum, readchr, i.split('\t')[0], i.split('\t')[1], str(pval)])
+    for chrom in motifpos:
+        chrom='>gi|730582171|gb|CP009644.1| Escherichia coli ER2796, complete genome'
+        readnum=readcontent[0].split('\t')[0]
+        readchr=readcontent[0].split('\t')[1]
+        for i in readcontent[2:]:
+            ##if the position is relevant, get info. This part needs to be changed for multi chr refs
+            if int(i.split('\t')[0]) in motifpos[chrom]:
+                eventmean=float(i.split('\t')[6])
+                zval=(eventmean-float(model[i.split('\t')[1]][0]))/float(model[i.split('\t')[1]][1])
+                pval=scipy.stats.norm.sf(abs(zval))*2
+                kmervals.append([readnum, readchr, i.split('\t')[0], i.split('\t')[1], str(pval)])
     agg=0
     revagg=0
     strkmervals=''
