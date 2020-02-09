@@ -51,6 +51,7 @@ if [ $1 == align ] ; then
 	samtools index $datadir/align/$i/${i}_40k.sorted.bam
     done
 fi
+
 if [ $1 == align_plas ] ; then	
     for i in $plasmids ;
     do
@@ -125,3 +126,49 @@ if [ $1 == compore ] ; then
     done
 fi
 
+
+if [ $1 == aggregate_test ] ; then
+
+    for i in neb12;
+    do
+	python3 ~/Code/methylation/methbin/aggregate_events.py \
+		-r $datadir/reference/er2796.fa \
+		-c $datadir/eventalign_collapsed/neb11/neb11_eventalign_collapse.tsv \
+		-d ~/software/nanopolish/etc/r9-models/r9.4_450bps.nucleotide.6mer.template.model \
+		-m CCGG \
+		-o $datadir/eventalign_collapsed/$i/neb11.positionpvals.tsv \
+		-p $datadir/eventalign_collapsed/$i/neb11.readpvals.tsv \
+		-t 12 >& $datadir/eventalign_collapsed/$i/weirdreads_neb11.txt
+	python3 ~/Code/methylation/methbin/aggregate_events.py \
+		-r $datadir/reference/er2796.fa \
+		-c $datadir/eventalign_collapsed/$i/${i}_eventalign_collapse.tsv \
+		-d ~/software/nanopolish/etc/r9-models/r9.4_450bps.nucleotide.6mer.template.model \
+		-m CCGG \
+		-o $datadir/eventalign_collapsed/$i/$i.positionpvals.tsv \
+		-p $datadir/eventalign_collapsed/$i/$i.readpvals.tsv \
+		-t 12
+    done
+fi
+
+if [ $1 == aggregate_test2 ] ; then
+    for i in neb2 ;
+    do
+	python3 ~/Code/methylation/methbin/aggregate_events.py \
+		-r $datadir/reference/allsamps.fa \
+		-c $datadir/eventalign_collapsed/$i/${i}_eventalign_collapse.tsv \
+		-d ~/software/nanopolish/etc/r9-models/r9.4_450bps.nucleotide.6mer.template.model \
+		-m CCGG \
+		-o $datadir/eventalign_collapsed/$i/$i.positionpvals.tsv \
+		-p $datadir/eventalign_collapsed/$i/$i.readpvals.tsv \
+		-t 12
+	
+	python3 ~/Code/methylation/methbin/aggregate_events.py \
+		-r $datadir/reference/allsamps.fa \
+		-c $datadir/eventalign_collapsed/neb1/neb1_eventalign_collapse.tsv \
+		-d ~/software/nanopolish/etc/r9-models/r9.4_450bps.nucleotide.6mer.template.model \
+		-m CCGG \
+		-o $datadir/eventalign_collapsed/$i/neb1.positionpvals.tsv \
+		-p $datadir/eventalign_collapsed/$i/neb1.readpvals.tsv \
+		-t 12
+    done
+fi
