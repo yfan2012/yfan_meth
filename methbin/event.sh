@@ -160,7 +160,7 @@ if [ $1 == aggregate_test2 ] ; then
 		-m CCGG \
 		-o $datadir/eventalign_collapsed/$i/$i.positionpvals.tsv \
 		-p $datadir/eventalign_collapsed/$i/$i.readpvals.tsv \
-		-t 12
+		-t 24
 	
 	python3 ~/Code/methylation/methbin/aggregate_events.py \
 		-r $datadir/reference/allsamps.fa \
@@ -169,6 +169,6 @@ if [ $1 == aggregate_test2 ] ; then
 		-m CCGG \
 		-o $datadir/eventalign_collapsed/$i/neb1.positionpvals.tsv \
 		-p $datadir/eventalign_collapsed/$i/neb1.readpvals.tsv \
-		-t 12
+		-t 24
     done
 fi
