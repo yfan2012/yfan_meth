@@ -57,6 +57,7 @@ fi
 
 if [ $1 == aggregate_all ] ; then
     nebsamps=$datadir/reference/nebsamps.tsv
+    
     while read samp ; do
 	name=`echo $samp | cut -d ' ' -f 1`
 	motif=` echo $samp | cut -d ' ' -f 2 `
@@ -65,9 +66,8 @@ if [ $1 == aggregate_all ] ; then
 	mod=` echo $samp | cut -d ' ' -f 5 `
 	pos=` echo $samp | cut -d ' ' -f 6 `
 	dna=` echo $samp | cut -d ' ' -f 7 `
-
+	
 	if [ $motif != 'none' ] && [ ! -f $datadir/eventalign_collapsed/$name/$name.readpvals.tsv ] ; then
-
 	    python3 ~/Code/methylation/methbin/aggregate_events.py \
 		    -r $datadir/reference/allsamps.fa \
 		    -c $datadir/eventalign_collapsed/$name/${name}_eventalign_collapse.tsv \
@@ -94,6 +94,9 @@ if [ $1 == aggregate_all ] ; then
 			-o $datadir/eventalign_collapsed/$name/neb1.positionpvals.tsv \
 			-p $datadir/eventalign_collapsed/$name/neb1.readpvals.tsv \
 			-t 12
+	    else
+		echo skipping $name
 	    fi
+	fi
     done < $nebsamps
 fi
