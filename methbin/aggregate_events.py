@@ -7,8 +7,7 @@ import re
 import scipy
 import math
 from scipy import stats
-sys.path.insert(1, '/home/yfan/Code/utils')
-from fasta_utils import fasta_dict
+import pysam
 
 parser=argparse.ArgumentParser(description='calculate event pvals')
 parser.add_argument('-r', '--ref', type=str, required=True, help='reference aligned to for nanopolish')
@@ -51,7 +50,9 @@ def find_motifs(reffile, motifs, motiflen):
     need a fastafile and a list of motifs
     give dict with 'chrname':[list of positions where any motif occurs with flanking region]
     '''
-    fastadict=fasta_dict(reffile)
+    fa=pysam.FastaFile(reffile)
+    tigs=fa.references
+    fastadict={ x:fa.fetch(x) for x in tigs }
     motifpos={}
     for seq in fastadict:
         motifpos[seq]=[]
@@ -89,11 +90,11 @@ def read_index(indexfile):
     readidx={}
     for i in content[1:]:
         if len(i)>0:
-            readidx[i.split('\t')[3]]=[int(i.split('\t')[4]), int(i.split('\t')[9]), int(i.split('\t')[10])]
+            readidx[i.split('\t')[3]]=[int(i.split('\t')[4]), int(i.split('\t')[9]), int(i.split('\t')[10]), str(i.split('\t')[0])]
     return readidx
 
 
-def per_read_pvals(collapsefile, byteoffset, bytelen, motifpos, model, q, r):
+def per_read_pvals(collapsefile, readchrom, byteoffset, bytelen, motifpos, model, q, r):
     '''
     get collapsed file and index info
     return [readnum, chrom, refpos, kmer, pval] and [read_id, loglik]
@@ -103,12 +104,11 @@ def per_read_pvals(collapsefile, byteoffset, bytelen, motifpos, model, q, r):
         readcontent=f.read(bytelen).split('\n')
         f.close()
     kmervals=[]
-    chrom='>gi|730582171|gb|CP009644.1| Escherichia coli ER2796, complete genome'
     readnum=readcontent[0].split('\t')[0]
     readchr=readcontent[0].split('\t')[1]
     for i in readcontent[2:]:
         ##if the position is relevant, get info. This part needs to be changed for multi chr refs
-        if int(i.split('\t')[0]) in motifpos[chrom]:
+        if int(i.split('\t')[0]) in motifpos[readchrom]:
             eventmean=float(i.split('\t')[6])
             zval=(eventmean-float(model[i.split('\t')[1]][0]))/float(model[i.split('\t')[1]][1])
             pval=scipy.stats.norm.sf(abs(zval))*2
@@ -146,7 +146,7 @@ def listener(q, outfile):
 def main(reffile, motifs, collapsefile, modelfile, koutfile, poutfile):
     model=read_model(modelfile)
     motiflen=6
-    allmotifs=expand_motifs([motifs])
+    allmotifs=expand_motifs(motifs)
     motifpos=find_motifs(reffile, allmotifs, motiflen)
     indexfile=collapsefile+'.idx'
     readidx=read_index(indexfile)
@@ -164,7 +164,7 @@ def main(reffile, motifs, collapsefile, modelfile, koutfile, poutfile):
     jobs=[]
     for i in readidx:
         if readidx[i][0] > 2000:
-            job=pool.apply_async(per_read_pvals, (collapsefile, readidx[i][1], readidx[i][2], motifpos, model, q, r))
+            job=pool.apply_async(per_read_pvals, (collapsefile, readidx[i][3], readidx[i][1], readidx[i][2], motifpos, model, q, r))
             jobs.append(job)
 
     ##I guess this bit actually runs the jobs? idk
