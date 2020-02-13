@@ -66,8 +66,10 @@ if [ $1 == aggregate_all ] ; then
 	mod=` echo $samp | cut -d ' ' -f 5 `
 	pos=` echo $samp | cut -d ' ' -f 6 `
 	dna=` echo $samp | cut -d ' ' -f 7 `
-	
+
+		
 	if [ $motif != 'none' ] && [ ! -f $datadir/eventalign_collapsed/$name/$name.readpvals.tsv ] ; then
+	    echo $name $name
 	    python3 ~/Code/methylation/methbin/aggregate_events.py \
 		    -r $datadir/reference/allsamps.fa \
 		    -c $datadir/eventalign_collapsed/$name/${name}_eventalign_collapse.tsv \
@@ -75,8 +77,9 @@ if [ $1 == aggregate_all ] ; then
 		    -m $motif \
 		    -o $datadir/eventalign_collapsed/$name/$name.positionpvals.tsv \
 		    -p $datadir/eventalign_collapsed/$name/$name.readpvals.tsv \
-		    -t 12
+		    -t 36
 	    if [ $dna == gDNA ] ; then
+		echo $name neb11
 		python3 ~/Code/methylation/methbin/aggregate_events.py \
 			-r $datadir/reference/allsamps.fa \
 			-c $datadir/eventalign_collapsed/neb1/neb11_eventalign_collapse.tsv \
@@ -84,8 +87,9 @@ if [ $1 == aggregate_all ] ; then
 			-m $motif \
 			-o $datadir/eventalign_collapsed/$name/neb11.positionpvals.tsv \
 			-p $datadir/eventalign_collapsed/$name/neb11.readpvals.tsv \
-			-t 12
+			-t 36
 	    elif [ $dna == plas ] ; then
+		echo $name neb1
 		python3 ~/Code/methylation/methbin/aggregate_events.py \
 			-r $datadir/reference/allsamps.fa \
 			-c $datadir/eventalign_collapsed/neb1/neb1_eventalign_collapse.tsv \
@@ -93,7 +97,7 @@ if [ $1 == aggregate_all ] ; then
 			-m $motif \
 			-o $datadir/eventalign_collapsed/$name/neb1.positionpvals.tsv \
 			-p $datadir/eventalign_collapsed/$name/neb1.readpvals.tsv \
-			-t 12
+			-t 36
 	    else
 		echo skipping $name
 	    fi

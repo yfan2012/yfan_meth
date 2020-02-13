@@ -22,10 +22,11 @@ fi
 if [ $1 == 4mc_call ] ; then
     mkdir -p $datadir/calls
     mkdir -p $datadir/calls/neb12
-
+    
     model=$datadir/train/neb12/training2/model_final.checkpoint
         
-    for i in neb12 neb2 neb11 ;
+    ##for i in neb12 neb2 neb11 neb1 ;
+    for i in neb2 ;
     do
 	mkdir -p $datadir/calls/neb12/$i
 	megalodon $datadir/multiraw_test/$i \
@@ -42,37 +43,40 @@ if [ $1 == 4mc_call ] ; then
     done
 fi
 
+
 if [ $1 == 6ma_call ] ; then
-    for i in neb19 neb9 neb11 ;
+    for i in neb19 neb9 neb11 neb1 ;
     do
-	mkdir -p $datadir/calls/neb12/$i
+	model=$datadir/train/neb19/training2/model_final.checkpoint
+	mkdir -p $datadir/calls/neb19/$i
 	megalodon $datadir/multiraw_test/$i \
 		  --taiyaki-model-filename $model \
 		  --reference $ref \
 		  --devices 0 \
 		  --outputs mod_basecalls mods \
-		  --mod-motif X CCGG 0 \
+		  --mod-motif Z GATC 1 \
 		  --write-mods-text \
 		  --processes 18 \
 		  --overwrite \
 		  --verbose-read-progress 3 \
-		  --output-directory $datadir/calls/neb12/$i
+		  --output-directory $datadir/calls/neb19/$i
     done
-
-
-    for i in neb17 neb6 neb11 ;
+    
+    
+    for i in neb17 neb6 neb11 neb1 ;
     do
-	mkdir -p $datadir/calls/neb12/$i
+	model=$datadir/train/neb17/training2/model_final.checkpoint
+	mkdir -p $datadir/calls/neb17/$i
 	megalodon $datadir/multiraw_test/$i \
 		  --taiyaki-model-filename $model \
 		  --reference $ref \
 		  --devices 0 \
 		  --outputs mod_basecalls mods \
-		  --mod-motif X CCGG 0 \
+		  --mod-motif Z GANTC 1 \
 		  --write-mods-text \
 		  --processes 18 \
 		  --overwrite \
 		  --verbose-read-progress 3 \
-		  --output-directory $datadir/calls/neb12/$i
+		  --output-directory $datadir/calls/neb17/$i
     done
 fi

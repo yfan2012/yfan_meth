@@ -8,6 +8,7 @@ import scipy
 import math
 from scipy import stats
 import pysam
+import time
 
 parser=argparse.ArgumentParser(description='calculate event pvals')
 parser.add_argument('-r', '--ref', type=str, required=True, help='reference aligned to for nanopolish')
@@ -99,6 +100,7 @@ def per_read_pvals(collapsefile, readchrom, byteoffset, bytelen, motifpos, model
     get collapsed file and index info
     return [readnum, chrom, refpos, kmer, pval] and [read_id, loglik]
     '''
+    start_time=time.time()
     with open(collapsefile, 'r') as f:
         f.seek(byteoffset, 0)
         readcontent=f.read(bytelen).split('\n')
@@ -106,25 +108,33 @@ def per_read_pvals(collapsefile, readchrom, byteoffset, bytelen, motifpos, model
     kmervals=[]
     readnum=readcontent[0].split('\t')[0]
     readchr=readcontent[0].split('\t')[1]
+    agg=0
+    revagg=0
+    strkmervals=''
     for i in readcontent[2:]:
-        ##if the position is relevant, get info. This part needs to be changed for multi chr refs
+        ##if the position is relevant, get info
         if int(i.split('\t')[0]) in motifpos[readchrom]:
             eventmean=float(i.split('\t')[6])
             zval=(eventmean-float(model[i.split('\t')[1]][0]))/float(model[i.split('\t')[1]][1])
             pval=scipy.stats.norm.sf(abs(zval))*2
-            kmervals.append([readnum, readchr, i.split('\t')[0], i.split('\t')[1], str(pval)])
-    agg=0
-    revagg=0
-    strkmervals=''
-    for i in kmervals:
-        agg+=math.log(float(i[4]),10)
-        revagg+=math.log(1-float(i[4]),10)
-        strkmervals+='\t'.join(i)+'\n'
+            kmerinfo=[readnum, readchr, i.split('\t')[0], i.split('\t')[1], str(pval)]
+            if float(pval) > 0:
+                agg+=math.log(float(pval),10)
+                revagg+=math.log(1-float(pval),10)
+                strkmervals+='\t'.join(kmerinfo)+'\n'
+            elif float(pval) == 0:
+                agg+=-500
+                revagg+=0
+                strkmervals+='\t'.join(kmerinfo)+'\n'
+            else:
+                print('why is the pval ' + str(pval) + ' in read ' + readnum )
+                strkmervals+='\t'.join(kmerinfo)+'\n'
     try:
         aggratio=agg/revagg
     except ZeroDivisionError:
         aggratio=agg/(revagg+.0001)
         print(str(readnum)+ ': sum of pvals is 0?')
+    print(readnum+ ' took ' + str(time.time()-start_time) + ' seconds')
     q.put(strkmervals)
     r.put('\t'.join([str(readnum), str(aggratio)])+'\n')
 

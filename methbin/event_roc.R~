@@ -46,15 +46,13 @@ getconfusion <- function(methfile, unmethfile) {
 for (i in 1:dim(samps)[1]) {
     modfile=paste0(datadir, samps$gDNA[i], '/', samps$gDNA[i], '/per_read_modified_base_calls.txt')
     plsfile=paste0(datadir, samps$gDNA[i], '/', samps$plas[i], '/per_read_modified_base_calls.txt')
-    umodfile=paste0(datadir, samps$gDNA[i], '/neb11/per_read_modified_base_calls.txt')
-    uplsfile=paste0(datadir, samps$gDNA[i], '/neb1/per_read_modified_base_calls.txt')
-    
-    
-    plasconf=getconfusion(plsfile, uplsfile)
+    ctrfile=paste0(datadir, samps$gDNA[i], '/neb11/per_read_modified_base_calls.txt')
+
+    plasconf=getconfusion(plsfile, ctrfile)
     plasconf$samp='plasmid'
 
 
-    modconf=getconfusion(modfile, umodfile)
+    modconf=getconfusion(modfile, ctrfile)
     modconf$samp='gDNA'
 
     plotconf=rbind(modconf, plasconf)

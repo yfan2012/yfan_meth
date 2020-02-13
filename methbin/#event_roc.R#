@@ -11,17 +11,14 @@ samps=tibble(gDNA=c('neb12', 'neb13', 'neb14', 'neb15', 'neb16', 'neb17', 'neb19
 
 
 getconfusion <- function(methfile, unmethfile) {
-    meth=read_tsv(methfile) %>%
-        select(read_id, pos, mod_log_prob, can_log_prob) %>%
-        mutate(ratio=can_log_prob/mod_log_prob) %>%
+    meth=read_tsv(methfile, col_names=c('read', 'ratio')) %>%
         mutate(meth=TRUE)
-    unmeth=read_tsv(unmethfile) %>%
-        select(read_id, pos, mod_log_prob, can_log_prob) %>%
-        mutate(ratio=can_log_prob/mod_log_prob) %>%
+    unmeth=read_tsv(unmethfile, col_names=c('read', 'ratio')) %>%
         mutate(meth=FALSE)
+
     all=rbind(meth, unmeth)
 
-    thresholds=sort(all$ratio)[seq(1, length(all$ratio), 2000)]
+    thresholds=sort(all$ratio)[seq(1, length(all$ratio), 20)]
     pos=sum(all$meth)
     neg=sum(!all$meth)
 
@@ -44,10 +41,11 @@ getconfusion <- function(methfile, unmethfile) {
 
 
 for (i in 1:dim(samps)[1]) {
-    modfile=paste0(datadir, samps$gDNA[i], '/', samps$gDNA[i], '/per_read_modified_base_calls.txt')
-    plsfile=paste0(datadir, samps$gDNA[i], '/', samps$plas[i], '/per_read_modified_base_calls.txt')
-    umodfile=paste0(datadir, samps$gDNA[i], '/neb11/per_read_modified_base_calls.txt')
-    uplsfile=paste0(datadir, samps$gDNA[i], '/neb1/per_read_modified_base_calls.txt')
+    modfile=paste0(datadir, samps$gDNA[i], '/', samps$gDNA[i], '.readpvals.tsv')
+    umodfile=paste0(datadir, samps$gDNA[i], '/neb11.readpvals.tsv')
+
+    plsfile=paste0(datadir, samps$plas[i], '/', samps$plas[i], '.readpvals.tsv')
+    uplsfile=paste0(datadir, samps$plas[i], '/neb1.readpvals.tsv')
     
     
     plasconf=getconfusion(plsfile, uplsfile)
@@ -60,7 +58,7 @@ for (i in 1:dim(samps)[1]) {
     plotconf=rbind(modconf, plasconf)
     plotconf$mtase=samps$gDNA[i]
 
-    plotfile=paste0('~/Dropbox/yfan/methylation/methbin/taiyaki/roc_', samps$gDNA[i], '.pdf')
+    plotfile=paste0('~/Dropbox/yfan/methylation/methbin/event/roc_', samps$gDNA[i], '.pdf')
     pdf(plotfile)
     ggplot(plotconf, aes(x=fpr, y=tpr, colour=mtase)) +
         geom_line(aes(linetype=samp)) +
