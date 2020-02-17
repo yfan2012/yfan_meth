@@ -2,8 +2,8 @@ library(tidyverse)
 library(doParallel)
 library(foreach)
 
-cl=makeCluster(10)
-registerDoParallel(cl, cores=10)
+cl=makeCluster(8)
+registerDoParallel(cl, cores=8)
 
 datadir='~/data/methbin/calls/'
 samps=tibble(gDNA=c('neb12', 'neb13', 'neb14', 'neb15', 'neb16', 'neb17', 'neb19'), 
@@ -79,6 +79,7 @@ classread <- function(methfile, unmethfile) {
 
 
 ##gets per base roc
+allposconf=data.frame(matrix(ncol=3, nrow=0))
 for (i in 1:dim(samps)[1]) {
     modfile=paste0(datadir, samps$gDNA[i], '/', samps$gDNA[i], '/per_read_modified_base_calls.txt')
     plsfile=paste0(datadir, samps$gDNA[i], '/', samps$plas[i], '/per_read_modified_base_calls.txt')
@@ -106,10 +107,22 @@ for (i in 1:dim(samps)[1]) {
         ylab('True Positive Rate') +
         theme_bw()
     dev.off()
+    allposconf=rbind(allposconf, plotconf)
 }    
+pdf('~/Dropbox/yfan/methylation/methbin/taiyaki/roc_all.pdf')
+ggplot(allplasconf, aes(x=fpr, y=tpr, colour=mtase)) +
+    geom_line(aes(linetype=samp)) +
+    geom_abline(slope=1, intercept=0) +
+    xlim(0,1) +
+    ylim(0,1) +
+    xlab('False Positive Rate') +
+    ylab('True Positive Rate') +
+    theme_bw()
+dev.off()
 
    
 ##gets per read roc
+allreadconf=data.frame(matrix(ncol=3, nrow=0))
 for (i in 1:dim(samps)[1]) {
     modfile=paste0(datadir, samps$gDNA[i], '/', samps$gDNA[i], '/per_read_modified_base_calls.txt')
     plsfile=paste0(datadir, samps$gDNA[i], '/', samps$plas[i], '/per_read_modified_base_calls.txt')
@@ -137,4 +150,15 @@ for (i in 1:dim(samps)[1]) {
         ylab('True Positive Rate') +
         theme_bw()
     dev.off()
+    allreadconf=rbind(allreadconf, plotconf)
 }    
+pdf('~/Dropbox/yfan/methylation/methbin/taiyaki/readroc_all.pdf')
+ggplot(allreadconf, aes(x=fpr, y=tpr, colour=mtase)) +
+    geom_line(aes(linetype=samp)) +
+    geom_abline(slope=1, intercept=0) +
+    xlim(0,1) +
+    ylim(0,1) +
+    xlab('False Positive Rate') +
+    ylab('True Positive Rate') +
+    theme_bw()
+dev.off()

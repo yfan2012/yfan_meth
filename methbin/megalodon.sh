@@ -80,3 +80,68 @@ if [ $1 == 6ma_call ] ; then
 		  --output-directory $datadir/calls/neb17/$i
     done
 fi
+
+
+if [ $1 == 5mc_call ] ; then
+    nebsamps=/uru/Data/Nanopore/projects/methbin/reference/nebsamps.tsv
+    
+    while read samp ; do
+        name=`echo $samp | cut -d ' ' -f 1`
+        motif=` echo $samp | cut -d ' ' -f 2 `
+        modtype=` echo $samp | cut -d ' ' -f 3 `
+        canonical=` echo $samp | cut -d ' ' -f 4 `
+        mod=` echo $samp | cut -d ' ' -f 5 `
+        pos=` echo $samp | cut -d ' ' -f 6 `
+        dna=` echo $samp | cut -d ' ' -f 7 `
+        seq=` echo $samp | cut -d ' ' -f 8 `
+	pair=` echo $samp | cut -d ' ' -f 9 `
+	model=$datadir/train/$name/training2/model_final.checkpoint
+
+	if [ -f $model ] ; then
+
+	    if [ $pair == none ] ; then
+		nameset="$name neb11"
+	    else
+		nameset="$name $pair neb11 neb1"
+	    fi
+	    
+	    for i in $nameset ;
+	    do
+		mkdir -p $datadir/calls/$name/$i
+		megalodon $datadir/multiraw_test/$i \
+			  --taiyaki-model-filename $model \
+			  --reference $ref \
+			  --devices 0 \
+			  --outputs mod_basecalls mods \
+			  --mod-motif $mod $motif $pos \
+			  --write-mods-text \
+			  --processes 36 \
+			  --overwrite \
+			  --verbose-read-progress 3 \
+			  --output-directory $datadir/calls/$name/$i
+	    done
+	fi
+    done < $nebsamps
+fi
+	    
+
+if [ $1 == nebdcm ] ; then
+    for i in nebdcm neb11 ;
+    do
+	model=$datadir/train/nebdcm/training2/model_final.checkpoint
+	mkdir -p $datadir/calls/nebdcm/$i
+	megalodon $datadir/multiraw_test/$i \
+		  --taiyaki-model-filename $model \
+		  --reference $ref \
+		  --devices 0 \
+		  --outputs mod_basecalls mods \
+		  --mod-motif Y CCWGG 1 \
+		  --write-mods-text \
+		  --processes 18 \
+		  --overwrite \
+		  --verbose-read-progress 3 \
+		  --output-directory $datadir/calls/nebdcm/$i
+    done
+fi
+
+

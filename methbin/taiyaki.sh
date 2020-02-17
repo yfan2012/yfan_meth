@@ -172,17 +172,18 @@ fi
 
 
 if [ $1 == 5mc_train ] ; then
-    for i in nebdcm neb14 neb15 neb16 neb13 ;
+    ##for i in nebdcm neb15 neb16 neb13 neb14 ;
+    for i in neb15 neb16 neb13 neb14 ;
     do
 	mkdir -p $datadir/train/$i/training
 	train_mod_flipflop.py --overwrite --device 0 --mod_factor 0.01 --outdir $datadir/train/$i/training \
 			      ~/software/taiyaki/models/mGru_cat_mod_flipflop.py \
-			      $datadir/train/$i/${i}_100k_modbase.hdf5
+			      $datadir/train/$i/${i}_modbase.hdf5
 
 	mkdir -p $datadir/train/$i/training2
 	train_mod_flipflop.py --overwrite --device 0 --mod_factor 1.0 --outdir $datadir/train/$i/training2 \
 			      $datadir/train/$i/training/model_final.checkpoint \
-			      $datadir/train/$i/${i}_100k_modbase.hdf5
+			      $datadir/train/$i/${i}_modbase.hdf5
     done
 fi
 

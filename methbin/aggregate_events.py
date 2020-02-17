@@ -17,7 +17,9 @@ parser.add_argument('-d', '--dists', type=str, required=True, help='model file')
 parser.add_argument('-m', '--motif', type=str, required=True, help='mod motif. standard iupac nucleotide codes')
 parser.add_argument('-o', '--out', type=str, required=True, help='output file for kmer pvals')
 parser.add_argument('-p', '--pout', type=str, required=True, help='output file for pvals aggregated across each read')
+parser.add_argument('-d', '--tout', type=str, required=True, help='output file for time taken per read')
 parser.add_argument('-t', '--threads', type=int, required=True, help='number of threads to use')
+parser.add_argument('-s', '--seq', type=str, required=False, help='which seq in reference fasta is interesting')
 args=parser.parse_args()
 
 iupacnt={
@@ -95,7 +97,7 @@ def read_index(indexfile):
     return readidx
 
 
-def per_read_pvals(collapsefile, readchrom, byteoffset, bytelen, motifpos, model, q, r):
+def per_read_pvals(collapsefile, readchrom, byteoffset, bytelen, motifpos, model, q, r, t):
     '''
     get collapsed file and index info
     return [readnum, chrom, refpos, kmer, pval] and [read_id, loglik]
@@ -105,7 +107,6 @@ def per_read_pvals(collapsefile, readchrom, byteoffset, bytelen, motifpos, model
         f.seek(byteoffset, 0)
         readcontent=f.read(bytelen).split('\n')
         f.close()
-    kmervals=[]
     readnum=readcontent[0].split('\t')[0]
     readchr=readcontent[0].split('\t')[1]
     agg=0
@@ -135,6 +136,7 @@ def per_read_pvals(collapsefile, readchrom, byteoffset, bytelen, motifpos, model
         aggratio=agg/(revagg+.0001)
         print(str(readnum)+ ': sum of pvals is 0?')
     print(readnum+ ' took ' + str(time.time()-start_time) + ' seconds')
+    t.put(readnum + ',' + str(time.time()-start_time) + ',' + str(len(readcontent)) + '\n')
     q.put(strkmervals)
     r.put('\t'.join([str(readnum), str(aggratio)])+'\n')
 
@@ -164,18 +166,26 @@ def main(reffile, motifs, collapsefile, modelfile, koutfile, poutfile):
     manager=mp.Manager()
     q=manager.Queue()
     r=manager.Queue()
+    t=manager.Queue()
     pool=mp.Pool(args.threads)
 
     ##listener is like a capaciter for stuff that needs to be written to a file
     qwatcher=pool.apply_async(listener, (q,koutfile))
     rwatcher=pool.apply_async(listener, (r,poutfile))
+    twatcher=pool.apply_async(listener, (t,toutfile))
     
     ##start jobs whose results will accumulate in the watcher
     jobs=[]
     for i in readidx:
-        if readidx[i][0] > 2000:
-            job=pool.apply_async(per_read_pvals, (collapsefile, readidx[i][3], readidx[i][1], readidx[i][2], motifpos, model, q, r))
-            jobs.append(job)
+        ##if seqname is sepecified, then only consider the relevant ones
+        if args.seq:
+            if readidx[i][0] > 2000 and readidx[i][3]==args.seq:
+                job=pool.apply_async(per_read_pvals, (collapsefile, readidx[i][3], readidx[i][1], readidx[i][2], motifpos, model, q, r))
+                jobs.append(job)
+        else:
+            if readidx[i][0] > 2000:
+                job=pool.apply_async(per_read_pvals, (collapsefile, readidx[i][3], readidx[i][1], readidx[i][2], motifpos, model, q, r))
+                jobs.append(job)
 
     ##I guess this bit actually runs the jobs? idk
     for job in jobs:
@@ -184,12 +194,13 @@ def main(reffile, motifs, collapsefile, modelfile, koutfile, poutfile):
     ##signal listeners to die
     q.put('Done now, ty 4 ur service')
     r.put('Done now, ty 4 ur service')
+    t.put('Done now, ty 4 ur service')
     pool.close()
     pool.join()
 
 
 if __name__ == "__main__":
-    main(args.ref, args.motif, args.col, args.dists, args.out, args.pout)
+    main(args.ref, args.motif, args.col, args.dists, args.out, args.pout, args.tout)
   
  
     
