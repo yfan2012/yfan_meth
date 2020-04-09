@@ -1,0 +1,20 @@
+library(tidyverse)
+library(doParallel)
+library(foreach)
+
+cl=makeCluster(12)
+registerDoParallel(cl, cores=12)
+
+datadir='/uru/Data/Nanopore/projects/methbin/eventalign_collapsed/'
+
+samps=tibble(gDNA=c('neb12', 'neb13', 'neb14', 'neb15', 'neb16', 'neb17', 'neb19'),
+             plas=c('neb2', 'neb3', 'neb10', 'neb4', 'neb5', 'neb6', 'neb9'))
+columns=c('read', 'seqname', 'position', 'kmer', 'pval')
+
+
+for (i in samps$gDNA) {
+    file=paste0(datadir, i, '/', i, '.positionpvals.tsv')
+    pvals=read_tsv(file, col_names=columns)
+    
+    lims=seq(1000, 5000000, 1000)
+    ##paused here because the smapling doesn't go up high enough

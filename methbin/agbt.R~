@@ -16,12 +16,9 @@ getconfusion <- function(methfile, unmethfile) {
     unmeth=read_tsv(unmethfile, col_names=c('read', 'ratio')) %>%
         mutate(meth=FALSE)
 
-    numreads=min(dim(meth)[1], dim(unmeth)[1])
-    all=rbind(meth[1:numreads,], unmeth[1:numreads,])
+    all=rbind(meth, unmeth)
 
-    ##thresholds=sort(all$ratio)[seq(1, length(all$ratio), 3)]
-    thresholds=sort(all$ratio)
-    
+    thresholds=sort(all$ratio)[seq(1, length(all$ratio), 20)]
     pos=sum(all$meth)
     neg=sum(!all$meth)
 
@@ -41,17 +38,18 @@ getconfusion <- function(methfile, unmethfile) {
 }
 
 
-
 allconfs=data.frame(matrix(ncol=3, nrow=0))
-for (i in c(1, 3:dim(samps)[1])) {
+for (i in 1:dim(samps)[1]) {
     modfile=paste0(datadir, samps$gDNA[i], '/', samps$gDNA[i], '.readpvals.tsv')
     umodfile=paste0(datadir, samps$gDNA[i], '/neb11.readpvals.tsv')
 
     plsfile=paste0(datadir, samps$plas[i], '/', samps$plas[i], '.readpvals.tsv')
     uplsfile=paste0(datadir, samps$plas[i], '/neb1.readpvals.tsv')
     
+    
     plasconf=getconfusion(plsfile, uplsfile)
     plasconf$samp='plasmid'
+
 
     modconf=getconfusion(modfile, umodfile)
     modconf$samp='gDNA'
@@ -59,13 +57,24 @@ for (i in c(1, 3:dim(samps)[1])) {
     plotconf=rbind(modconf, plasconf)
     plotconf$mtase=samps$gDNA[i]
 
+    plotfile=paste0('~/Dropbox/yfan/methylation/methbin/event/roc_', samps$gDNA[i], '.pdf')
+    pdf(plotfile)
+    print(ggplot(plotconf, aes(x=fpr, y=tpr, colour=mtase)) +
+        geom_line(aes(linetype=samp)) +
+        geom_abline(slope=1, intercept=0) +
+        xlim(0,1) +
+        ylim(0,1) +
+        xlab('False Positive Rate') +
+        ylab('True Positive Rate') +
+        theme_bw())
+    dev.off()
     allconfs=rbind(allconfs, plotconf)
 }
 
 plotall=paste0('~/Dropbox/yfan/methylation/methbin/event/roc_all.pdf')
 pdf(plotall)
 print(ggplot(allconfs, aes(x=fpr, y=tpr, colour=mtase)) +
-      geom_path(aes(linetype=samp)) +
+      geom_line(aes(linetype=samp)) +
       geom_abline(slope=1, intercept=0) +
       xlim(0,1) +
       ylim(0,1) +

@@ -17,9 +17,8 @@ parser.add_argument('-d', '--dists', type=str, required=True, help='model file')
 parser.add_argument('-m', '--motif', type=str, required=True, help='mod motif. standard iupac nucleotide codes')
 parser.add_argument('-o', '--out', type=str, required=True, help='output file for kmer pvals')
 parser.add_argument('-p', '--pout', type=str, required=True, help='output file for pvals aggregated across each read')
-parser.add_argument('-d', '--tout', type=str, required=True, help='output file for time taken per read')
 parser.add_argument('-t', '--threads', type=int, required=True, help='number of threads to use')
-parser.add_argument('-s', '--seq', type=str, required=False, help='which seq in reference fasta is interesting')
+parser.add_argument('-l', '--numreads', type=int, required=False, help='how many reads to consider')
 args=parser.parse_args()
 
 iupacnt={
@@ -97,7 +96,7 @@ def read_index(indexfile):
     return readidx
 
 
-def per_read_pvals(collapsefile, readchrom, byteoffset, bytelen, motifpos, model, q, r, t):
+def per_read_pvals(collapsefile, readchrom, byteoffset, bytelen, motifpos, model, q, r):
     '''
     get collapsed file and index info
     return [readnum, chrom, refpos, kmer, pval] and [read_id, loglik]
@@ -112,9 +111,11 @@ def per_read_pvals(collapsefile, readchrom, byteoffset, bytelen, motifpos, model
     agg=0
     revagg=0
     strkmervals=''
+    numpos=0
     for i in readcontent[2:]:
         ##if the position is relevant, get info
         if int(i.split('\t')[0]) in motifpos[readchrom]:
+            numpos+=1
             eventmean=float(i.split('\t')[6])
             zval=(eventmean-float(model[i.split('\t')[1]][0]))/float(model[i.split('\t')[1]][1])
             pval=scipy.stats.norm.sf(abs(zval))*2
@@ -130,15 +131,15 @@ def per_read_pvals(collapsefile, readchrom, byteoffset, bytelen, motifpos, model
             else:
                 print('why is the pval ' + str(pval) + ' in read ' + readnum )
                 strkmervals+='\t'.join(kmerinfo)+'\n'
-    try:
-        aggratio=agg/revagg
-    except ZeroDivisionError:
-        aggratio=agg/(revagg+.0001)
-        print(str(readnum)+ ': sum of pvals is 0?')
-    print(readnum+ ' took ' + str(time.time()-start_time) + ' seconds')
-    t.put(readnum + ',' + str(time.time()-start_time) + ',' + str(len(readcontent)) + '\n')
-    q.put(strkmervals)
-    r.put('\t'.join([str(readnum), str(aggratio)])+'\n')
+    if numpos > 90: ##roughly 15 positions
+        try:
+            aggratio=agg/revagg
+        except ZeroDivisionError:
+            aggratio=agg/(.00001)
+            print(str(readnum)+ ': sum of pvals is 0?')
+        print(readnum+ ' took ' + str(time.time()-start_time) + ' seconds')
+        q.put(strkmervals)
+        r.put('\t'.join([str(readnum), str(aggratio)])+'\n')
 
     
 def listener(q, outfile):
@@ -155,10 +156,10 @@ def listener(q, outfile):
 
             
 #https://stackoverflow.com/questions/13446445/python-multiprocessing-safely-writing-to-a-file
-def main(reffile, motifs, collapsefile, modelfile, koutfile, poutfile):
+def main(reffile, motifs, collapsefile, modelfile, koutfile, poutfile, readlim):
     model=read_model(modelfile)
     motiflen=6
-    allmotifs=expand_motifs(motifs)
+    allmotifs=expand_motifs([motifs])
     motifpos=find_motifs(reffile, allmotifs, motiflen)
     indexfile=collapsefile+'.idx'
     readidx=read_index(indexfile)
@@ -166,26 +167,23 @@ def main(reffile, motifs, collapsefile, modelfile, koutfile, poutfile):
     manager=mp.Manager()
     q=manager.Queue()
     r=manager.Queue()
-    t=manager.Queue()
     pool=mp.Pool(args.threads)
 
-    ##listener is like a capaciter for stuff that needs to be written to a file
+    if readlim is None:
+        readlim=float('inf')
+        
+    ##two things from the pool will be for writing
     qwatcher=pool.apply_async(listener, (q,koutfile))
     rwatcher=pool.apply_async(listener, (r,poutfile))
-    twatcher=pool.apply_async(listener, (t,toutfile))
-    
+
     ##start jobs whose results will accumulate in the watcher
     jobs=[]
+    numreads=0
     for i in readidx:
-        ##if seqname is sepecified, then only consider the relevant ones
-        if args.seq:
-            if readidx[i][0] > 2000 and readidx[i][3]==args.seq:
-                job=pool.apply_async(per_read_pvals, (collapsefile, readidx[i][3], readidx[i][1], readidx[i][2], motifpos, model, q, r))
-                jobs.append(job)
-        else:
-            if readidx[i][0] > 2000:
-                job=pool.apply_async(per_read_pvals, (collapsefile, readidx[i][3], readidx[i][1], readidx[i][2], motifpos, model, q, r))
-                jobs.append(job)
+        if readidx[i][0] > 2000 and readlim > numreads:
+            numreads+=1
+            job=pool.apply_async(per_read_pvals, (collapsefile, readidx[i][3], readidx[i][1], readidx[i][2], motifpos, model, q, r))
+            jobs.append(job)
 
     ##I guess this bit actually runs the jobs? idk
     for job in jobs:
@@ -194,13 +192,12 @@ def main(reffile, motifs, collapsefile, modelfile, koutfile, poutfile):
     ##signal listeners to die
     q.put('Done now, ty 4 ur service')
     r.put('Done now, ty 4 ur service')
-    t.put('Done now, ty 4 ur service')
     pool.close()
     pool.join()
 
 
 if __name__ == "__main__":
-    main(args.ref, args.motif, args.col, args.dists, args.out, args.pout, args.tout)
+    main(args.ref, args.motif, args.col, args.dists, args.out, args.pout, args.numreads)
   
  
     

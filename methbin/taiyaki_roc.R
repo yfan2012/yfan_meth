@@ -110,7 +110,7 @@ for (i in 1:dim(samps)[1]) {
     allposconf=rbind(allposconf, plotconf)
 }    
 pdf('~/Dropbox/yfan/methylation/methbin/taiyaki/roc_all.pdf')
-ggplot(allplasconf, aes(x=fpr, y=tpr, colour=mtase)) +
+ggplot(allposconf, aes(x=fpr, y=tpr, colour=mtase)) +
     geom_line(aes(linetype=samp)) +
     geom_abline(slope=1, intercept=0) +
     xlim(0,1) +
@@ -162,3 +162,30 @@ ggplot(allreadconf, aes(x=fpr, y=tpr, colour=mtase)) +
     ylab('True Positive Rate') +
     theme_bw()
 dev.off()
+
+
+
+allsamps=samps$gDNA[c(1:2, 4:7)]
+allconf=data.frame(matrix(ncol=5, nrow=0))
+for (i in 1:length(allsamps)) {
+    unmodfile=paste0(datadir, 'neb14/', allsamps[i], '/per_read_modified_base_calls.txt')
+    modfile=paste0(datadir, 'neb14/neb14/per_read_modified_base_calls.txt')
+
+    conf=classread(modfile, unmodfile)
+    conf$mtase=allsamps[i]
+    conf$samp='gDNA'
+
+    allconf=rbind(allconf,conf)
+}
+
+pdf('~/Dropbox/yfan/methylation/methbin/taiyaki/crossgatc_roc.pdf')
+ggplot(allconf, aes(x=fpr, y=tpr, colour=mtase)) +
+    geom_line(aes(linetype=samp)) +
+    geom_abline(slope=1, intercept=0) +
+    xlim(0,1) +
+    ylim(0,1) +
+    xlab('False Positive Rate') +
+    ylab('True Positive Rate') +
+    theme_bw()
+dev.off()
+

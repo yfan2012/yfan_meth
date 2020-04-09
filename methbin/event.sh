@@ -46,7 +46,7 @@ if [ $1 == align ] ; then
 	mkdir -p $datadir/align/$i
 	
 	minimap2 -t 36 -ax map-ont $ref $datadir/fastqs/$i/${i}_40k.fq |
-	    samtools view -@ 36 -b |
+	    samtools view -@ 36 -b -F 16 |
 	    samtools sort -@ 36 -o $datadir/align/$i/${i}_40k.sorted.bam -T $datadir/align/$i/$i.tmp
 	samtools index $datadir/align/$i/${i}_40k.sorted.bam
     done
@@ -60,7 +60,7 @@ if [ $1 == align_plas ] ; then
 	mkdir -p $datadir/align/$i
 	ref=$datadir/reference/allsamps.fa
 	minimap2 -t 36 -ax map-ont $ref $datadir/fastqs/$i/${i}_40k.fq |
-	    samtools view -@ 36 -b |
+	    samtools view -@ 36 -b -F 16 |
 	    samtools sort -@ 36 -o $datadir/align/$i/${i}_40k.sorted.bam -T $datadir/align/$i/$i.tmp
 	samtools index $datadir/align/$i/${i}_40k.sorted.bam
     done
@@ -113,11 +113,11 @@ if [ $1 == compore ] ; then
 	if [ $i != 'neb11' ] ; then ##neb11 was the test samp
 	    mkdir -p $datadir/eventalign_collapsed/$i
 	    
-	    header=`head -n 1 $datadir/eventalign/$i/${i}_40kraw.eventalign.tsv`
-	    sed -i "1i $header" $datadir/eventalign/$i/${i}_40kraw_template.eventalign.tsv
+	    ##header=`head -n 1 $datadir/eventalign/$i/${i}_40kraw.eventalign.tsv`
+	    ##sed -i "1i $header" $datadir/eventalign/$i/${i}_40kraw_template.eventalign.tsv
 	    
 	    NanopolishComp Eventalign_collapse \
-			   -i $datadir/eventalign/$i/${i}_40kraw_template.eventalign.tsv \
+			   -i $datadir/eventalign/$i/${i}_40kraw.eventalign.tsv \
 			   -o $datadir/eventalign_collapsed/$i \
 			   -t 36 \
 			   --max_reads 20 \
@@ -129,7 +129,7 @@ fi
 
 if [ $1 == aggregate_test ] ; then
 
-    for i in neb12;
+    for i in $gdna ;
     do
 	python3 ~/Code/methylation/methbin/aggregate_events.py \
 		-r $datadir/reference/er2796.fa \
@@ -138,7 +138,7 @@ if [ $1 == aggregate_test ] ; then
 		-m CCGG \
 		-o $datadir/eventalign_collapsed/$i/neb11.positionpvals.tsv \
 		-p $datadir/eventalign_collapsed/$i/neb11.readpvals.tsv \
-		-t 12 >& $datadir/eventalign_collapsed/$i/weirdreads_neb11.txt
+		-t 12
 	python3 ~/Code/methylation/methbin/aggregate_events.py \
 		-r $datadir/reference/er2796.fa \
 		-c $datadir/eventalign_collapsed/$i/${i}_eventalign_collapse.tsv \

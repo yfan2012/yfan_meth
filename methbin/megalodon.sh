@@ -1,7 +1,7 @@
 #!/bin/bash
 
 datasource=/uru/Data/Nanopore/projects/methbin/multiraw
-datadir=~/data/methbin
+datadir=/home/yfan/data/methbin
 gdna="neb11 neb12 neb13 neb14 neb15 neb16 neb17 neb19 nebdcm"
 ref=$datadir/reference/allsamps.fa
 
@@ -123,7 +123,7 @@ if [ $1 == 5mc_call ] ; then
 	fi
     done < $nebsamps
 fi
-	    
+
 
 if [ $1 == nebdcm ] ; then
     for i in nebdcm neb11 ;
@@ -145,3 +145,160 @@ if [ $1 == nebdcm ] ; then
 fi
 
 
+if [ $1 == cross_call ] ; then
+    nebsamps=/uru/Data/Nanopore/projects/methbin/reference/nebsamps.tsv
+    
+    while read samp ; do
+        name=`echo $samp | cut -d ' ' -f 1`
+        motif=` echo $samp | cut -d ' ' -f 2 `
+        modtype=` echo $samp | cut -d ' ' -f 3 `
+        canonical=` echo $samp | cut -d ' ' -f 4 `
+        mod=` echo $samp | cut -d ' ' -f 5 `
+        pos=` echo $samp | cut -d ' ' -f 6 `
+        dna=` echo $samp | cut -d ' ' -f 7 `
+        seq=` echo $samp | cut -d ' ' -f 8 `
+	pair=` echo $samp | cut -d ' ' -f 9 `
+	model=$datadir/train/$name/training2/model_final.checkpoint
+
+	mkdir -p $datadir/calls/$name
+
+	echo $mod $motif $pos
+	
+	if [ $name == neb14 ] ; then
+	    for i in neb19 neb12 neb13 neb14 neb15 neb16 neb17 ;
+	    do
+		echo $name $i =======================================================================================
+		if [ $i != $name ] ; then
+		    rmdir $datadir/calls/$name/$i
+		    megalodon $datadir/multiraw_test/$i \
+			      --taiyaki-model-filename $model \
+			      --reference $ref \
+			      --devices 0 \
+			      --outputs mod_basecalls mods \
+			      --mod-motif Y GATC 3 \
+			      --write-mods-text \
+			      --processes 36 \
+			      --verbose-read-progress 3 \
+			      --output-directory $datadir/calls/$name/$i
+		fi
+	    done
+	fi
+    done < $nebsamps
+fi
+
+
+if [ $1 == neb14 ] ; then
+    mkdir -p $datadir/calls
+    mkdir -p $datadir/calls/neb14
+    
+    model=$datadir/train/neb14/training2/model_final.checkpoint
+        
+    ##for i in neb14 neb10 neb11 neb1 neb19 ;
+    for i in neb10 ;
+    do
+	mkdir -p $datadir/calls/neb12/$i
+	megalodon $datadir/multiraw_test/$i \
+		  --taiyaki-model-filename $model \
+		  --reference $ref \
+		  --devices 0 \
+		  --outputs mod_basecalls mods \
+		  --mod-motif Y GATC 3 \
+		  --write-mods-text \
+		  --processes 18 \
+		  --overwrite \
+		  --verbose-read-progress 3 \
+		  --output-directory $datadir/calls/neb14/$i
+    done
+fi
+
+if [ $1 == neb15 ] ; then
+    mkdir -p $datadir/calls
+    mkdir -p $datadir/calls/neb15
+    
+    model=$datadir/train/neb15/training2/model_final.checkpoint
+        
+    for i in neb15 neb4 neb11 neb1 ;
+    do
+	mkdir -p $datadir/calls/neb15/$i
+	megalodon $datadir/multiraw_test/$i \
+		  --taiyaki-model-filename $model \
+		  --reference $ref \
+		  --devices 0 \
+		  --outputs mod_basecalls mods \
+		  --mod-motif Y GCNGC 1 \
+		  --write-mods-text \
+		  --processes 18 \
+		  --overwrite \
+		  --verbose-read-progress 3 \
+		  --output-directory $datadir/calls/neb15/$i
+    done
+fi
+
+if [ $1 == neb16 ] ; then
+    mkdir -p $datadir/calls
+    mkdir -p $datadir/calls/neb16
+    
+    model=$datadir/train/neb16/training2/model_final.checkpoint
+        
+    for i in neb16 neb5 neb11 neb1 ;
+    do
+	mkdir -p $datadir/calls/neb16/$i
+	megalodon $datadir/multiraw_test/$i \
+		  --taiyaki-model-filename $model \
+		  --reference $ref \
+		  --devices 0 \
+		  --outputs mod_basecalls mods \
+		  --mod-motif Y CCNGGC 5 \
+		  --write-mods-text \
+		  --processes 18 \
+		  --overwrite \
+		  --verbose-read-progress 3 \
+		  --output-directory $datadir/calls/neb16/$i
+    done
+fi
+
+if [ $1 == neb13 ] ; then
+    mkdir -p $datadir/calls
+    mkdir -p $datadir/calls/neb13
+    
+    model=$datadir/train/neb13/training2/model_final.checkpoint
+        
+    for i in neb13 neb3 neb11 neb1 ;
+    do
+	rmdir $datadir/calls/neb13/$i
+	megalodon $datadir/multiraw_test/$i \
+		  --taiyaki-model-filename $model \
+		  --reference $ref \
+		  --devices 0 \
+		  --outputs mod_basecalls mods \
+		  --mod-motif Y CTGCAG 3 \
+		  --write-mods-text \
+		  --processes 18 \
+		  --verbose-read-progress 3 \
+		  --output-directory $datadir/calls/neb13/$i
+    done
+fi
+
+
+if [ $1 == neb14_cross ] ; then
+    mkdir -p $datadir/calls
+    mkdir -p $datadir/calls/neb14
+    
+    model=$datadir/train/neb14/training2/model_final.checkpoint
+        
+    ##for i in neb14 neb10 neb11 neb1 neb19 ;
+    ##for i in neb10 ;
+    for i in neb12 neb13 neb15 neb16 neb17 neb19 neb2 neb3 neb4 neb5 neb6 neb8 ;
+    do
+	megalodon $datadir/multiraw_test/$i \
+		  --taiyaki-model-filename $model \
+		  --reference $ref \
+		  --devices 0 \
+		  --outputs mod_basecalls mods \
+		  --mod-motif Y GATC 3 \
+		  --write-mods-text \
+		  --processes 18 \
+		  --verbose-read-progress 3 \
+		  --output-directory $datadir/calls/neb14/$i
+    done
+fi

@@ -173,7 +173,8 @@ fi
 
 if [ $1 == 5mc_train ] ; then
     ##for i in nebdcm neb15 neb16 neb13 neb14 ;
-    for i in neb15 neb16 neb13 neb14 ;
+    ##for i in neb15 neb16 neb13 neb14 ;
+    for i in neb13 ;
     do
 	mkdir -p $datadir/train/$i/training
 	train_mod_flipflop.py --overwrite --device 0 --mod_factor 0.01 --outdir $datadir/train/$i/training \

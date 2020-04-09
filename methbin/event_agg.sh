@@ -10,24 +10,17 @@ virus="neb8"
 
 if [ $1 == aggregate_test ] ; then
 
-    for i in neb12;
+    for i in neb19;
     do
 	python3 ~/Code/methylation/methbin/aggregate_events.py \
-		-r $datadir/reference/er2796.fa \
-		-c $datadir/eventalign_collapsed/neb11/neb11_eventalign_collapse.tsv \
-		-d ~/software/nanopolish/etc/r9-models/r9.4_450bps.nucleotide.6mer.template.model \
-		-m CCGG \
-		-o $datadir/eventalign_collapsed/$i/neb11.positionpvals.tsv \
-		-p $datadir/eventalign_collapsed/$i/neb11.readpvals.tsv \
-		-t 12 >& $datadir/eventalign_collapsed/$i/weirdreads_neb11.txt
-	python3 ~/Code/methylation/methbin/aggregate_events.py \
-		-r $datadir/reference/er2796.fa \
+		-r $datadir/reference/allsamps.fa \
 		-c $datadir/eventalign_collapsed/$i/${i}_eventalign_collapse.tsv \
 		-d ~/software/nanopolish/etc/r9-models/r9.4_450bps.nucleotide.6mer.template.model \
-		-m CCGG \
+		-m GATC \
 		-o $datadir/eventalign_collapsed/$i/$i.positionpvals.tsv \
 		-p $datadir/eventalign_collapsed/$i/$i.readpvals.tsv \
-		-t 12
+		-l 3000 \
+		-t 36
     done
 fi
 
@@ -67,59 +60,71 @@ if [ $1 == aggregate_all ] ; then
 	pos=` echo $samp | cut -d ' ' -f 6 `
 	dna=` echo $samp | cut -d ' ' -f 7 `
 	seq=` echo $samp | cut -d ' ' -f 8 `
-		
-	##if [ $name == neb13 ] && [ ! -f $datadir/eventalign_collapsed/$name/neb11.readpvals.tsv ] ; then
-	if [ $name == neb10 ] ; then
+
+	if [ $motif != 'none' ] ; then
+	##if [ $name == neb13 ] ; then
 	    echo $name $name
-	    #python3 ~/Code/methylation/methbin/aggregate_events.py \
-	#	    -r $datadir/reference/allsamps.fa \
-	#	    -c $datadir/eventalign_collapsed/$name/${name}_eventalign_collapse.tsv \
-	#	    -d ~/software/nanopolish/etc/r9-models/r9.4_450bps.nucleotide.6mer.template.model \
-	#	    -m $motif \
-	#	    -s $seq \
-	#	    -o $datadir/eventalign_collapsed/$name/$name.positionpvals.tsv \
-	#	    -p $datadir/eventalign_collapsed/$name/$name.readpvals.tsv \
-       	#	    -t 36
-	    if [ $dna == sfiojeofj ] ; then
+	    python3 ~/Code/methylation/methbin/aggregate_events.py \
+		    -r $datadir/reference/allsamps.fa \
+		    -c $datadir/eventalign_collapsed/$name/${name}_eventalign_collapse.tsv \
+		    -d ~/software/nanopolish/etc/r9-models/r9.4_450bps.nucleotide.6mer.template.model \
+		    -m $motif \
+		    -o $datadir/eventalign_collapsed/$name/$name.positionpvals.tsv \
+		    -p $datadir/eventalign_collapsed/$name/$name.readpvals.tsv \
+		    -l 3000 \
+       		    -t 36
+	    if [ $dna == gDNA ] ; then
 		echo $name neb11
 		python3 ~/Code/methylation/methbin/aggregate_events.py \
 			-r $datadir/reference/allsamps.fa \
 			-c $datadir/eventalign_collapsed/neb11/neb11_eventalign_collapse.tsv \
 			-d ~/software/nanopolish/etc/r9-models/r9.4_450bps.nucleotide.6mer.template.model \
 			-m $motif \
-			-s "gi|730582171|gb|CP009644.1|" \
 			-o $datadir/eventalign_collapsed/$name/neb11.positionpvals.tsv \
 			-p $datadir/eventalign_collapsed/$name/neb11.readpvals.tsv \
+			-l 3000 \
 			-t 36
-	    elif [ $name == neb10 ] && [ ! -f $datadir/eventalign_collapsed/$name/neb1.readpvals.tsv ] ; then
+	    elif [ $dna == plas ] ; then
 		echo $name neb1
 		python3 ~/Code/methylation/methbin/aggregate_events.py \
 			-r $datadir/reference/allsamps.fa \
 			-c $datadir/eventalign_collapsed/neb1/neb1_eventalign_collapse.tsv \
 			-d ~/software/nanopolish/etc/r9-models/r9.4_450bps.nucleotide.6mer.template.model \
 			-m $motif \
-			-s pT7MSin395ORF667 \
 			-o $datadir/eventalign_collapsed/$name/neb1.positionpvals.tsv \
 			-p $datadir/eventalign_collapsed/$name/neb1.readpvals.tsv \
+			-l 3000 \
 			-t 36
-	    else
-		echo skipping $name
 	    fi
 	fi
     done < $nebsamps
 fi
 
     
-if [ $1 == testneb10 ] ; then
-    for i in neb10 ;
+if [ $1 == testneb13 ] ; then
+    for i in neb13 neb11;
     do
+	echo neb13 $i
 	python3 ~/Code/methylation/methbin/aggregate_events.py \
 		-r $datadir/reference/allsamps.fa \
-		-c $datadir/eventalign_collapsed/neb1/neb1_eventalign_collapse.tsv \
+		-c $datadir/eventalign_collapsed/$i/${i}_eventalign_collapse.tsv \
 		-d ~/software/nanopolish/etc/r9-models/r9.4_450bps.nucleotide.6mer.template.model \
-		-m CCGG \
-		-o $datadir/eventalign_collapsed/$i/neb1.positionpvals.tsv \
-		-p $datadir/eventalign_collapsed/$i/neb1.readpvals.tsv \
+		-m CTGCAG \
+		-o $datadir/eventalign_collapsed/neb13/$i.positionpvals.tsv \
+		-p $datadir/eventalign_collapsed/neb13/$i.readpvals.tsv \
+		-t 36
+    done
+
+    for i in neb3 neb1 ;
+    do
+	echo neb3 $i
+	python3 ~/Code/methylation/methbin/aggregate_events.py \
+		-r $datadir/reference/allsamps.fa \
+		-c $datadir/eventalign_collapsed/$i/${i}_eventalign_collapse.tsv \
+		-d ~/software/nanopolish/etc/r9-models/r9.4_450bps.nucleotide.6mer.template.model \
+		-m CTGCAG \
+		-o $datadir/eventalign_collapsed/neb3/$i.positionpvals.tsv \
+		-p $datadir/eventalign_collapsed/neb3/$i.readpvals.tsv \
 		-t 36
     done
 fi   
