@@ -1,8 +1,0 @@
-import csv
-import argparse
-
-
-def find_motifs(reffile, motifs):
-    '''
-    need a fastadict
-   

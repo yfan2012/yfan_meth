@@ -1,7 +1,7 @@
 #!/bin/bash
 
 rawdir=/dilithium/Data/Nanopore/oxford
-datadir=/uru/Data/Nanopore/projects/methbin
+datadir=/mithril/Data/Nanopore/projects/methbin
 
 
 if [ $1 == make_multi ] ; then

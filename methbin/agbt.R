@@ -53,7 +53,8 @@ getlengths  <- function(idxfile, pvalfile) {
     return(lenratio)
 }
     
-    
+
+
 ##get some length/pval ratio correlations
 plotfile=paste0('~/Dropbox/yfan/methylation/methbin/event/lenratio_corr2.pdf')
 pdf(plotfile)
