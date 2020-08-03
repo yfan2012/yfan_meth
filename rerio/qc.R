@@ -1,4 +1,53 @@
 library(tidyverse)
 
-datadir='/mithril/Data/Nanopore/projects/methbin/rerio/'
-samps=c('neb1','neb10','neb11','neb12','neb13','neb14','neb15','neb16','neb17','neb19','neb2','neb3','neb4','neb5','neb6','neb8','neb9','nebdcm') 
+datadir='/mithril/Data/Nanopore/projects/methbin/'
+dbxdir='~/Dropbox/yfan/methylation/methbin/rerio/'
+samps=c('neb1','neb10','neb11','neb12','neb13','neb14','neb15','neb16','neb17','neb19','neb2','neb3','neb4','neb5','neb6','neb8','neb9','nebdcm')
+
+gdnasamps=c('neb11','neb12','neb13','neb14','neb15','neb16','neb17','neb19','nebdcm')
+
+allsamps=tibble(
+    qname=as.character(),
+    full.len=as.numeric(),
+    align.len=as.numeric(),
+    match=as.numeric(),
+    mismatch=as.numeric(),
+    insert=as.numeric(),
+    delete=as.numeric(),
+    hard=as.numeric(),
+    soft=as.numeric(),
+    matchfrac=as.numeric(),
+    mismatfrac=as.numeric(),
+    insfrac=as.numeric(),
+    delfrac=as.numeric(),
+    hardfrac=as.numeric(),
+    softfrac=as.numeric(),
+    samp=as.character())
+
+for (i in gdnasamps) {
+    errfile=paste0(datadir, 'align/', i, '/', i, '_rerio.md.sorted.csv')
+    samp=read_csv(errfile) %>%
+        mutate(samp=i)
+    allsamps=rbind(allsamps, samp)
+}
+
+pdf(paste0(dbxdir, 'per_read_errors_gdna.pdf'), h=6, w=15)
+ggplot(allsamps, aes(x=samp, y=insfrac, colour=samp, alpha=.3, fill=samp)) +
+    geom_violin(scale='width') +
+    ggtitle('Insertions') +
+    xlab('Samp') +
+    ylab('Insertion Fraction') +
+    theme_bw()
+ggplot(allsamps, aes(x=samp, y=delfrac, colour=samp, alpha=.3, fill=samp)) +
+    geom_violin(scale='width') +
+    ggtitle('Deletions') +
+    xlab('Samp') +
+    ylab('Deletion Fraction') +
+    theme_bw()
+ggplot(allsamps, aes(x=samp, y=mismatfrac, colour=samp, alpha=.3, fill=samp)) +
+    geom_violin(scale='width') +
+    ggtitle('Mismatches') +
+    xlab('Samp') +
+    ylab('Mismatch Fraction') +
+    theme_bw()
+dev.off()

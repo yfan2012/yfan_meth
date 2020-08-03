@@ -72,5 +72,23 @@ if [ $1 == per_read_errors ] ; then
    gunzip $datadir/align/*/*_rerio.md.sorted.csv.gz
 fi
    
-       
+if [ $1 == assess ] ; then
+
+    for i in neb17 ;
+    do
+	mkdir -p $datadir/rerio/$i/assess
+	python ~/Code/methylation/utils/methcall_check.py \
+	       -r $ref \
+	       -b $datadir/align/$i/${i}_rerio.md.sorted.bam \
+	       -o $datadir/rerio/$i/assess/$i.GANTC.csv \
+	       -f $datadir/rerio/$i/called/workspace \
+	       -m GANTC \
+	       -p 1 \
+	       -s 0 \
+	       -t 36
+    done
+fi
+
+	       
+    
 
