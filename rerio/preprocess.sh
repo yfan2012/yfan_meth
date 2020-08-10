@@ -80,12 +80,29 @@ if [ $1 == assess ] ; then
 	python ~/Code/methylation/utils/methcall_check.py \
 	       -r $ref \
 	       -b $datadir/align/$i/${i}_rerio.md.sorted.bam \
-	       -o $datadir/rerio/$i/assess/$i.GANTC.csv \
+	       -o ~/data/$i.GANTC.csv \
 	       -f $datadir/rerio/$i/called/workspace \
 	       -m GANTC \
 	       -p 1 \
 	       -s 0 \
-	       -t 36
+	       -t 54
+    done
+fi
+
+if [ $1 == assess_single ] ; then
+
+    for i in neb17 ;
+    do
+	mkdir -p $datadir/rerio/$i/assess
+	python ~/Code/methylation/utils/methcall_check_single.py \
+	       -r $ref \
+	       -b $datadir/align/$i/${i}_rerio.md.sorted.bam \
+	       -o ~/data/$i.GANTC_singletest.csv \
+	       -f $datadir/rerio/$i/called/workspace \
+	       -m GANTC \
+	       -p 1 \
+	       -s 0
+
     done
 fi
 
