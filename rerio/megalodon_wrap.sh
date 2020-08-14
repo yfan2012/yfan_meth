@@ -22,6 +22,23 @@ if [ $1 == 6mA ] ; then
     bash ~/Code/yfan_meth/rerio/megalodon.sh neb19 Z GATC 3 rerio_allmod
 
 fi
+if [ $1 == 6mA_vanilla ] ; then
+    ##testing true motif, all 6mA 
+    
+    ##neb17
+    bash ~/Code/yfan_meth/rerio/megalodon.sh neb17 Y GANTC 1 megalodon_vanilla
+    bash ~/Code/yfan_meth/rerio/megalodon.sh neb17 Y GATC 1 megalodon_vanilla 
+    bash ~/Code/yfan_meth/rerio/megalodon.sh neb17 Z CCWGG 1 megalodon_vanilla
+    bash ~/Code/yfan_meth/rerio/megalodon.sh neb17 Z GATC 3 megalodon_vanilla
+    
+    
+    ##neb19
+    bash ~/Code/yfan_meth/rerio/megalodon.sh neb19 Y GATC 1 megalodon_vanilla
+    bash ~/Code/yfan_meth/rerio/megalodon.sh neb19 Y GANTC 1 megalodon_vanilla
+    bash ~/Code/yfan_meth/rerio/megalodon.sh neb19 Z CCWGG 1 megalodon_vanilla
+    bash ~/Code/yfan_meth/rerio/megalodon.sh neb19 Z GATC 3 megalodon_vanilla
+
+fi
 
 
 if [ $1 == control ] ; then

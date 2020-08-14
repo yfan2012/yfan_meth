@@ -28,6 +28,23 @@ if [ $5 == rerio_allmod ] ; then
 
 fi
 
+if [ $5 == megalodon_vanilla ] ; then
+	mkdir -p ~/data/rerio/$samp/megalodon/${samp}_vanilla_${motif}_$mod
+
+	megalodon \
+	    ~/data/rerio/$samp/multiraw_sub/ \
+	    --overwrite \
+	    --guppy-server-path "/usr/bin/guppy_basecall_server" \
+	    --reference $ref \
+	    --mod-motif $mod $motif $pos \
+	    --outputs basecalls mod_basecalls per_read_mods mods \
+	    --output-directory ~/data/rerio/$samp/megalodon/${samp}_vanilla_${motif}_$mod \
+	    --write-mods-text \
+	    --devices "cuda:0" \
+	    --processes 36
+
+fi
+
 
 	       
     
