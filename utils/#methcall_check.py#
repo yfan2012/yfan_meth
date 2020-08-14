@@ -42,6 +42,12 @@ def fasta_dict(reffile):
     fastadict={ x:fa.fetch(x) for x in tigs }
     return fastadict
 
+def rev_comp(seq):
+    key={'A': 'T', 'T':'A', 'G':'C',  'C':'G'}
+    newseq=''
+    for i in seq:
+        newseq+=key[i]
+    return newseq[::-1]
 
 def motif_position(fastadict, motifs, modpos):
     '''
@@ -73,22 +79,22 @@ def read_mods(fast5, bamfile, motifpos, motifs, modpos, q):
 
     motiflen=len(motifs[0])
 
-    
     with get_fast5_file(fast5, mode="r") as f5:
         for read_id in f5.get_read_ids():
             readff=f5.get_read(read_id)
             latest_basecall=readff.get_latest_analysis('Basecall_1D')
             mod_base_table=readff.get_analysis_dataset(latest_basecall, 'BaseCalled_template/ModBaseProbs')
             readrecord=baminfo.find(read_id)
-
+            
             for read in readrecord:
-
                 ##make sure the record is not unmapped or secondary (calmd doesn't give these md tags)
                 if not read.is_unmapped and not read.is_secondary:
                     align=np.array(read.get_aligned_pairs(with_seq=True))
                     chrom=read.reference_name
-                    seq=read.get_forward_sequence()
-
+                    if read.is_reverse:
+                        seq=rev_comp(read.get_forward_sequence())
+                    else:
+                        seq=read.get_forward_sequence()
                     minrefpos=read.reference_start
                     maxrefpos=read.reference_end
                     firstmotif=sum(motifpos[chrom]<minrefpos)+1
@@ -98,27 +104,23 @@ def read_mods(fast5, bamfile, motifpos, motifs, modpos, q):
                     for pos in motifpos[chrom][firstmotif:lastmotif]:
                         alignidx=np.where(align[:,1]==pos)[0][0]
                         alignpos=align[alignidx]
-
+                        
                         ##check for recognizable motif on the read, assume uniform length motifs for now
                         startidx=int(alignidx-modpos)
                         endidx=int(startidx+motiflen)
-                        alignmotif=align[int(startidx):int(endidx)][:,2]
-                        if sum(alignmotif==None)>0:
-                            motif_correct='del'
+                        alignmotif=align[int(startidx):int(endidx)]
+                        readmotif=seq[min(alignmotif[:,0]):max(alignmotif[:,0])+1]
+                        if readmotif in motifs:
+                            motif_correct='True'
                         else:
-                            readmotif=''.join(alignmotif)
-                            if readmotif in motifs:
-                                motif_correct='True'
-                            else:
-                                motif_correct='False'
-
-                        ##report mod probs if relevant
+                            motif_correct='False'
+                                
                         if alignpos[0]==None:
-                            q.put(','.join(map(lambda x: str(x), [read_id, 'del', 'del', chrom, alignpos[1], alignpos[2], 'del', 'del', motif_correct]))+'\n')
+                            ##q.put(','.join(map(lambda x: str(x), [read_id, 'del', 'del', chrom, alignpos[1], alignpos[2], 'del', 'del', motif_correct]))+'\n')
+                            modprobs=0
                         else:
                             modprobs=mod_base_table[alignpos[0]]
-                            q.put(','.join(map(lambda x: str(x), [read_id, alignpos[0], seq[alignpos[0]], chrom, alignpos[1], alignpos[2], modprobs[1], modprobs[3], motif_correct]))+'\n')
-                            
+                            ##q.put(','.join(map(lambda x: str(x), [read_id, alignpos[0], seq[alignpos[0]], chrom, alignpos[1], alignpos[2], modprobs[1], modprobs[3], motif_correct]))+'\n')
 
                         
     print(fast5+' took '+str(time.time()-start_time) + ' seconds')

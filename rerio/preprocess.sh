@@ -3,25 +3,6 @@
 datadir=/mithril/Data/Nanopore/projects/methbin
 allsamps='neb1 neb2 neb3 neb4 neb5 neb6 neb8 neb9 neb10 neb11 neb12 neb13 neb14 neb15 neb16 neb17 neb19 nebdcm'
 
-if [ $1 == call_neb_megalodon ] ; then
-    ##not using this since i just realized guppy can do this more easily
-    for i in nebdcm ; 
-    ##for i in $allsamps ;
-    do
-	subset=$datadir/multiraw_sub/$i
-	megalodon \
-	    $subset \
-	    --devices "cuda:0" \
-	    --outputs basecalls mod_basecalls per_read_mods mods \
-	    --output-directory ~/data/rerio/$i \
-	    --write-mods-text \
-	    --overwrite \
-	    --guppy-params "-d ~/software/rerio/basecall_models/ --num_callers 5 --ipc_threads 6" \
-	    --guppy-config res_dna_r941_min_modbases-all-context_v001 \
-	    --precesses 36
-    done
-fi
-
 if [ $1 == call_neb ] ; then
     for i in $allsamps ;
     do

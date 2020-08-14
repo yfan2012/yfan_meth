@@ -28,24 +28,28 @@ plot_modprobs <- function(samp) {
         modfile=paste0(datadir, samp, '/assess/', samp, '.', motif, '.csv')
         modinfo=read_csv(modfile, col_names=cols) %>%
             mutate(motif=motif) %>%
-            mutate(samp=samp)
+            mutate(samp=samp) %>%
+            filter(pAmod!='None') %>%
+            mutate(probAmod=as.numeric(pAmod))
         sampmodinfo=rbind(sampmodinfo, modinfo)
     }
     
     ##basic density of pA 
-    plot=ggplot(sampmodinfo, aes(x=pA, colour=motif, fill=motif, alpha=.3)) +
+    plot=ggplot(sampmodinfo, aes(x=probAmod, colour=motif, fill=motif, alpha=.3)) +
         geom_density() +
+        scale_y_continuous(trans='pseudo_log') +
         ggtitle(samp) +
-        xlab('Prob Meth') +
+        xlab('Prob mod (out of 255)') +
         theme_bw()
     return(plot)
 }
 
 neb17=plot_modprobs('neb17')
-aligned=align_plots(neb17, plots[2], align='v')
+neb19=plot_modprobs('neb19')
+
 outfile=paste0(dbxdir, 'rerio_Amod.pdf')
-pdf(outfile, h=11, w=6)
-ggdraw(aligned[[1]])
+pdf(outfile, h=10, w=10)
+plot_grid(neb17, neb19, ncol=1, align='v')
 dev.off()
 
 

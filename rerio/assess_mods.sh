@@ -3,6 +3,25 @@
 datadir=/mithril/Data/Nanopore/projects/methbin
 ref=$datadir/reference/allsamps.fa
 
+if [ $1 == test ] ; then
+    for i in neb17;
+    do
+	mkdir -p $datadir/rerio/$i/assess
+	for motif in GANTC ;
+	do
+            python ~/Code/yfan_meth/utils/methcall_check.py \
+		   -r $ref \
+		   -b $datadir/align/$i/${i}_rerio.md.sorted.bam \
+		   -f $datadir/rerio/$i/called/workspace \
+		   -o $datadir/rerio/$i/assess/$i.$motif.csv \
+		   -m $motif \
+		   -p 1 \
+		   -t 54
+	done
+    done
+fi
+
+
 if [ $1 == Amod ] ; then
     ##for both 6mA samples, inspect GANTC and GATC
     for i in neb19 neb17;
@@ -13,7 +32,7 @@ if [ $1 == Amod ] ; then
 	for motif in GANTC GATC ;
 	##for motif in GANTC ;
 	do
-            python ~/Code/methylation/utils/methcall_check.py \
+            python ~/Code/yfan_meth/utils/methcall_check.py \
 		   -r $ref \
 		   -b $datadir/align/$i/${i}_rerio.md.sorted.bam \
 		   -f $datadir/rerio/$i/called/workspace \
@@ -31,7 +50,7 @@ if [ $1 == Cmod ] ; then
     for i in neb14 nebdcm ;
     do
 	mkdir -p $datadir/rerio/$i/assess
-        python ~/Code/methylation/utils/methcall_check.py \
+        python ~/Code/yfan_meth/utils/methcall_check.py \
 	       -r $ref \
 	       -b $datadir/align/$i/${i}_rerio.md.sorted.bam \
 	       -f $datadir/rerio/$i/called/workspace \
@@ -41,7 +60,7 @@ if [ $1 == Cmod ] ; then
 	       -s 0 \
 	       -t 54
 	
-        python ~/Code/methylation/utils/methcall_check.py \
+        python ~/Code/yfan_meth/utils/methcall_check.py \
 	       -r $ref \
 	       -b $datadir/align/$i/${i}_rerio.md.sorted.bam \
 	       -f $datadir/rerio/$i/called/workspace \

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+
+##done in docker:
+##docker run --runtime=nvidia --name yfan_test -i -t -v ~/data/rerio:/media yfan2012/whack:guppy_bcall /bin/bash
+if [ $1 == test ] ; then
+    bash ~/Code/yfan_meth/rerio/megalodon.sh neb17 Y GANTC 1 rerio_allmod
+fi
