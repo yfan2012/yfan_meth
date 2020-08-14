@@ -109,7 +109,7 @@ def read_mods(fast5, bamfile, motifpos, motifs, modpos, q):
 
                         ##if the mod position is a deletion, all bets are off
                         if alignpos[0] == None:
-                            q.put(','.join(map(lambda x: str(x), [read_id, 'del', '-', chrom, alignpos[1], alignpos[2], 'del', 'del', 'False', strand]))+'\n')
+                            q.put(','.join(map(lambda x: str(x), [read_id, 'del', '-', chrom, alignpos[1], alignpos[2], 'del', 'del', 'False', strand, 'del']))+'\n')
 
                         else:
                             ##check for recognizable motif on the read, assume uniform length motifs for now
@@ -125,7 +125,7 @@ def read_mods(fast5, bamfile, motifpos, motifs, modpos, q):
                                 modprobs=mod_base_table[len(seq)-alignpos[0]-motiflen+modpos+modpos]
                             else:
                                 modprobs=mod_base_table[alignpos[0]]
-                            q.put(','.join(map(lambda x: str(x), [read_id, alignpos[0], seq[alignpos[0]], chrom, alignpos[1], alignpos[2], modprobs[1], modprobs[3], motif_correct, strand]))+'\n')
+                            q.put(','.join(map(lambda x: str(x), [read_id, alignpos[0], seq[alignpos[0]], chrom, alignpos[1], alignpos[2], modprobs[1], modprobs[3], motif_correct, strand, readmotif]))+'\n')
 
                         
     print(fast5+' took '+str(time.time()-start_time) + ' seconds')

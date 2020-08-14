@@ -39,7 +39,6 @@ if [ $1 == Amod ] ; then
 		   -o $datadir/rerio/$i/assess/$i.$motif.csv \
 		   -m $motif \
 		   -p 1 \
-		   -s 0 \
 		   -t 54
 	done
     done
@@ -57,7 +56,6 @@ if [ $1 == Cmod ] ; then
 	       -o $datadir/rerio/$i/assess/$i.GATC.csv \
 	       -m GATC \
 	       -p 3 \
-	       -s 0 \
 	       -t 54
 	
         python ~/Code/yfan_meth/utils/methcall_check.py \
@@ -67,7 +65,6 @@ if [ $1 == Cmod ] ; then
 	       -o $datadir/rerio/$i/assess/$i.CCWGG.csv \
 	       -m CCWGG \
 	       -p 1 \
-	       -s 0 \
 	       -t 54
     done
 fi
