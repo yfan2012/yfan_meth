@@ -68,3 +68,33 @@ if [ $1 == Cmod ] ; then
 	       -t 54
     done
 fi
+
+if [ $1 == control ] ; then
+    i=neb11
+
+    ##motif postion 1
+    for motif in GANTC GATC CCWGG GCNGC;
+    do
+        python ~/Code/yfan_meth/utils/methcall_check.py \
+	       -r $ref \
+	       -b $datadir/align/$i/${i}_rerio.md.sorted.bam \
+	       -f $datadir/rerio/$i/called/workspace \
+	       -o $datadir/rerio/$i/assess/$i.$motif.csv \
+	       -m $motif \
+	       -p 1 \
+	       -t 54
+    done
+
+    ##motif position 3
+    for motif in GATC ;
+    do
+	python ~/Code/yfan_meth/utils/methcall_check.py \
+	       -r $ref \
+	       -b $datadir/align/$i/${i}_rerio.md.sorted.bam \
+	       -f $datadir/rerio/$i/called/workspace \
+	       -o $datadir/rerio/$i/assess/$i.$motif.csv \
+	       -m $motif \
+	       -p 3 \
+	       -t 54
+    done
+fi
