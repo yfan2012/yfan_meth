@@ -1,4 +1,5 @@
 import argparse
+import warnings
 import pysam
 import numpy as np
 import multiprocessing as mp
@@ -66,12 +67,14 @@ def motif_position(fastadict, motifs, modpos):
 
 
 def read_mods(fast5, bamfile, motifpos, motifs, modpos, q):
+
     '''
     reads fast5file, indexed pysam align object bam, motifpos dict
     returns interesting info on each read contained therein
     '''
     start_time=time.time()
-
+    ##readsdone=0
+    
     ##store bamfiles
     bam=pysam.AlignmentFile(bamfile, 'rb')
     baminfo=pysam.IndexedReads(bam)
@@ -81,53 +84,66 @@ def read_mods(fast5, bamfile, motifpos, motifs, modpos, q):
 
     with get_fast5_file(fast5, mode="r") as f5:
         for read_id in f5.get_read_ids():
+            '''
+            readsdone+=1
+            if readsdone % 200 == 0:
+                print(fast5+' '+str(readsdone))
+            '''
             readff=f5.get_read(read_id)
             latest_basecall=readff.get_latest_analysis('Basecall_1D')
             mod_base_table=readff.get_analysis_dataset(latest_basecall, 'BaseCalled_template/ModBaseProbs')
             readrecord=baminfo.find(read_id)
-            
+
             for read in readrecord:
                 ##make sure the record is not unmapped or secondary (calmd doesn't give these md tags)
                 if not read.is_unmapped and not read.is_secondary:
-                    align=np.array(read.get_aligned_pairs(with_seq=True))
+
                     chrom=read.reference_name
-                    if read.is_reverse:
-                        seq=rev_comp(read.get_forward_sequence())
-                        strand='-'
-                    else:
-                        seq=read.get_forward_sequence()
-                        strand='+'
                     minrefpos=read.reference_start
                     maxrefpos=read.reference_end
                     firstmotif=sum(motifpos[chrom]<minrefpos)+1
                     lastmotif=sum(motifpos[chrom]<maxrefpos)
-                    
-                    ###go through each motif position in the alignemnt range (so you're not scanning thru the whole genome)
-                    for pos in motifpos[chrom][firstmotif:lastmotif]:
-                        alignidx=np.where(align[:,1]==pos)[0][0]
-                        alignpos=align[alignidx]
 
-                        ##if the mod position is a deletion, all bets are off
-                        if alignpos[0] == None:
-                            q.put(','.join(map(lambda x: str(x), [read_id, 'del', '-', chrom, alignpos[1], alignpos[2], 'del', 'del', 'False', strand, 'del']))+'\n')
+                    ##make sure read didn't align between two motifs
+                    if firstmotif<lastmotif:
+                        align=np.array(read.get_aligned_pairs(with_seq=True)).astype(object)
+                        ###go through each motif position in the alignemnt range (so you're not scanning thru the whole genome)
+                        for pos in motifpos[chrom][firstmotif:lastmotif]:
+                            alignidx=np.where(align[:,1].astype(float)==pos)[0][0]
+                            alignpos=align[alignidx]
 
-                        else:
-                            ##check for recognizable motif on the read, assume uniform length motifs for now
-                            startidx=alignpos[0]-modpos
-                            endidx=alignpos[0]-modpos+motiflen
-                            readmotif=seq[startidx:endidx]
-                            if readmotif in motifs:
-                                motif_correct='True'
-                            else:
-                                motif_correct='False'
-                                                
                             if read.is_reverse:
-                                modprobs=mod_base_table[len(seq)-alignpos[0]-motiflen+modpos+modpos]
+                                strand='-'
                             else:
-                                modprobs=mod_base_table[alignpos[0]]
-                            q.put(','.join(map(lambda x: str(x), [read_id, alignpos[0], seq[alignpos[0]], chrom, alignpos[1], alignpos[2], modprobs[1], modprobs[3], motif_correct, strand, readmotif]))+'\n')
+                                strand='+'
 
-                        
+                            ##if the mod position is a deletion, all bets are off
+                            refpos=int(alignpos[1])
+                            refbase=alignpos[2]
+                            if alignpos[0] == None:
+                                q.put(','.join(map(lambda x: str(x), [read_id, 'del', '-', chrom, refpos, refbase, 'del', 'del', 'False', strand, 'del']))+'\n')
+                            else:
+                                readpos=int(alignpos[0])
+                                if strand=='-':
+                                    seq=rev_comp(read.get_forward_sequence())
+                                    modprobs=mod_base_table[len(seq)-readpos-motiflen+modpos+modpos]
+                                else:
+                                    seq=read.get_forward_sequence()
+                                    modprobs=mod_base_table[readpos]
+
+                                ##check for recognizable motif on the read, assume uniform length motifs for now
+                                startidx=readpos-modpos
+                                endidx=readpos-modpos+motiflen
+                                readmotif=seq[startidx:endidx]
+                                if readmotif in motifs:
+                                    motif_correct='True'
+                                else:
+                                    motif_correct='False'
+
+                                q.put(','.join(map(lambda x: str(x), [read_id, readpos, seq[readpos], chrom, refpos, refbase, modprobs[1], modprobs[3], motif_correct, strand, readmotif]))+'\n')
+
+
+                                    
     print(fast5+' took '+str(time.time()-start_time) + ' seconds')
 
     

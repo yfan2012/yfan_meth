@@ -56,4 +56,19 @@ if [ $1 == control ] ; then
     ##6ma
     bash ~/Code/yfan_meth/rerio/megalodon.sh neb11 Y GANTC 1 rerio_allmod
     bash ~/Code/yfan_meth/rerio/megalodon.sh neb11 Y GATC 1 rerio_allmod
+
+
+    ##4mc
+    bash ~/Code/yfan_meth/rerio/megalodon.sh neb11 X CCGG 0 megalodon_vanilla
+
+    ##5mc
+    bash ~/Code/yfan_meth/rerio/megalodon.sh neb11 Z GATC 3 megalodon_vanilla
+    bash ~/Code/yfan_meth/rerio/megalodon.sh neb11 Z GCNGC 1 megalodon_vanilla
+    bash ~/Code/yfan_meth/rerio/megalodon.sh neb11 Z CCNGGC 5 megalodon_vanilla
+    bash ~/Code/yfan_meth/rerio/megalodon.sh neb11 Z CCWGG 1 megalodon_vanilla
+
+    ##6ma
+    bash ~/Code/yfan_meth/rerio/megalodon.sh neb11 Y GANTC 1 megalodon_vanilla
+    bash ~/Code/yfan_meth/rerio/megalodon.sh neb11 Y GATC 1 megalodon_vanilla
+
 fi
