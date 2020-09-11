@@ -1,16 +1,15 @@
 #!/bin/bash
 
+rawdir=/dilithium/Data/Nanopore/oxford/181010_ecoli_methylation_standards/all_data
 datadir=/mithril/Data/Nanopore/projects/methbin
-allsamps='neb1 neb2 neb3 neb4 neb5 neb6 neb8 neb9 neb10 neb11 neb12 neb13 neb14 neb15 neb16 neb17 neb19 nebdcm'
+allsamps='ecoli_CpG ecoli_CpGGpC ecoli_GpC ecoli_Unmethylated'
 
-if [ $1 == call_neb ] ; then
+if [ $1 == call ] ; then
     for i in $allsamps ;
     do
-	mkdir -p ~/data/rerio/$i
-	mkdir -p ~/data/rerio/$i/multiraw_sub
-	cp $datadir/multiraw_sub/$i/$i*.fast5 ~/data/rerio/$i/multiraw_sub
+	mkdir -p ~/data/rerio/$i/called
 	
-	~/software/guppy_basecaller \
+	guppy_basecaller \
 	    -i ~/data/rerio/$i/multiraw_sub \
 	    -s ~/data/rerio/$i/called \
 	    -d ~/software/rerio/basecall_models/ \
@@ -19,17 +18,19 @@ if [ $1 == call_neb ] ; then
 	    --fast5_out
 	##if u give config, u can't give kit/fcell
 
-
 	##move to mithril
 	mkdir -p $datadir/rerio/$i
 	mv ~/data/rerio/$i/called $datadir/rerio/$i/
     done
 fi
 
-ref=$datadir/reference/allsamps.fa
+ref=/dilithium/Data/Nanopore/Analysis/181010_ecoli_methylation_standards/Reference/ecoli_mg1655.fasta
 if [ $1 == gather_align ] ; then
     for i in $allsamps ;
     do
+	mkdir -p $datadir/fastqs/$i
+	mkdir -p $datadir/align/$i
+	
 	cat $datadir/rerio/$i/called/*fastq > $datadir/fastqs/$i/${i}_rerio.fq
 
 	minimap2 -t 36 -ax map-ont $ref $datadir/fastqs/$i/${i}_rerio.fq |\
