@@ -25,7 +25,6 @@ if [ $5 == rerio_allmod ] ; then
 	    --write-mods-text \
 	    --devices "cuda:0" \
 	    --processes 36
-
 fi
 
 if [ $5 == megalodon_vanilla ] ; then
@@ -46,6 +45,22 @@ if [ $5 == megalodon_vanilla ] ; then
 fi
 
 
-	       
+if [ $5 == test_model ] ; then
+    mkdir -p ~/data/rerio/$samp/megalodon/${samp}_vanilla_${motif}_$mod
+    
+    megalodon \
+	~/data/rerio/$samp/multiraw_sub/ \
+	--guppy-config dna_r9.4.1_450bps_modbases_dam-dcm-cpg_hac.cfg \
+	--guppy-server-path "/usr/bin/guppy_basecall_server" \
+	--reference $ref \
+	--mod-motif $mod $motif $pos \
+	--outputs basecalls mod_basecalls per_read_mods mods \
+	--output-directory ~/data/rerio/$samp/megalodon/${samp}_vanilla_${motif}_$mod \
+	--write-mods-text \
+	--devices "cuda:0" \
+	--processes 36 \
+	--overwrite
+fi
+
     
 

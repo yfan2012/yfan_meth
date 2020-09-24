@@ -1,5 +1,7 @@
 library(tidyverse)
 library(cowplot)
+library(doParallel)
+library(foreach)
 
 datadir='/mithril/Data/Nanopore/projects/methbin/rerio/'
 dbxdir='~/Dropbox/yfan/methylation/methbin/rerio/'
@@ -61,6 +63,45 @@ plot_modprobs <- function(samp, motifs, base) {
         return(plot)
     }
 }
+
+rerio_roc  <- function(samp, motif, basepos, base) {
+    modfile=paste0(datadir, samp, '/assess/', samp, '.', motif, '.', basepos, '.csv')
+    unmodfile=paste0(datadir, 'neb11/assess/neb11', '.', motif, '.', basepos, '.csv')
+    ###takes the samp and motifs that were extracted, and makes an roc
+    cols=c('read_name', 'read_index', 'read_base', 'ref_name','ref_index', 'ref_base', 'pAmod', 'pCmod', 'motifmatch', 'strand', 'readmotif')
+
+    mod=read_csv(modfile, col_names=cols) %>%
+        mutate(meth=TRUE)
+    unmod=read_csv(unmodfile, col_names=cols) %>%
+        mutate(meth=FALSE)
+    all=rbind(mod, unmod)
+
+    thresholds=seq(0,255,1)
+    pos=sum(all$meth)
+    neg=sum(!all$meth)
+
+
+    confusion=foreach(i=1:length(thresholds), .combine=rbind) %dopar% {
+        thresh=thresholds[i]
+
+        if (base=='A') {
+            call=all$pAmod > thresh
+        }else if (base=='C') {
+            call=all$pCmod > thresh
+        }
+
+        
+        tp=call & all$meth
+        fp=call & !all$meth
+
+        tpr=sum(tp)/pos
+        fpr=sum(fp)/neg
+        conf=data.frame(thresh=thresh, tpr=tpr, fpr=fpr)
+        return(conf)
+    }
+}
+
+        
 
 neb17a=plot_modprobs('neb17', amods, 'A')
 neb19a=plot_modprobs('neb19', amods, 'A')
@@ -153,3 +194,20 @@ plot=ggplot(allCerr, aes(x=samp, y=errfrac, colour=motif, fill=motif, alpha=.3))
     theme_bw()
 print(plot)
 dev.off()
+
+
+##ROC
+sampinfo=tibble(
+    samps=c('neb14', 'neb15', 'neb17', 'neb19', 'nebdcm'),
+    motifs=c('GATC', 'GCNGC', 'GANTC', 'GATC', 'CCWGG'),
+    basepos=c('3', '1', '1', '1', '1'),
+    base=c('C', 'C', 'A', 'A', 'C')
+    )
+    
+rocinfo=tibble(
+    thresh=as.numeric(),
+    tpr=as.numeric(),
+    fpr=as.numeric(),
+    samp=as.character(),
+    model=as.character(),
+    base=as.character())
