@@ -3,6 +3,10 @@ library(cowplot)
 library(doParallel)
 library(foreach)
 
+cl=makeCluster(10)
+registerDoParallel(cl, cores=10)
+
+
 datadir='/mithril/Data/Nanopore/projects/methbin/rerio/'
 dbxdir='~/Dropbox/yfan/methylation/methbin/rerio/'
 
@@ -211,3 +215,20 @@ rocinfo=tibble(
     samp=as.character(),
     model=as.character(),
     base=as.character())
+
+for (i in 1:dim(sampinfo)[1]) {
+    neb=sampinfo[i,]
+
+    nebroc=as_tibble(rerio_roc(neb$samps, neb$motifs, neb$basepos, neb$base)) %>%
+        mutate(samp=neb$samps)
+    rocinfo=rbind(rocinfo, nebroc)
+}
+
+outfile=paste0(dbxdir, 'rerio_roc.pdf')
+pdf(outfile, h=9, w=13)
+plot=ggplot(rocinfo, aes(x=tpr, y=fpr, colour=samp))+
+    geom_step() +
+    ggtitle('ROC Guppy Rerio') +
+    theme_bw()
+print(plot)
+dev.off()
