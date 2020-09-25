@@ -230,5 +230,6 @@ auc=rocinfo %>%
     mutate(differ=c(0,diff(fpr))) %>%
     mutate(prod=abs(differ)*tpr) %>%
     summarise(auc=sum(prod))
-
+outauc=paste0(dbxdir, 'mega_auc.csv')
+write_csv(auc, outauc)
 

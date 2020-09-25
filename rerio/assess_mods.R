@@ -75,9 +75,11 @@ rerio_roc  <- function(samp, motif, basepos, base) {
     cols=c('read_name', 'read_index', 'read_base', 'ref_name','ref_index', 'ref_base', 'pAmod', 'pCmod', 'motifmatch', 'strand', 'readmotif')
 
     mod=read_csv(modfile, col_names=cols) %>%
-        mutate(meth=TRUE)
+        mutate(meth=TRUE) %>%
+        filter(motifmatch==TRUE)
     unmod=read_csv(unmodfile, col_names=cols) %>%
-        mutate(meth=FALSE)
+        mutate(meth=FALSE) %>%
+        filter(motifmatch==TRUE)
     all=rbind(mod, unmod)
 
     thresholds=seq(0,255,1)
@@ -226,9 +228,11 @@ for (i in 1:dim(sampinfo)[1]) {
 
 outfile=paste0(dbxdir, 'rerio_roc.pdf')
 pdf(outfile, h=9, w=13)
-plot=ggplot(rocinfo, aes(x=tpr, y=fpr, colour=samp))+
+plot=ggplot(rocinfo, aes(x=fpr, y=tpr, colour=samp))+
     geom_step() +
     ggtitle('ROC Guppy Rerio') +
+    xlim(0,1) +
+    ylim(0,1) +
     theme_bw()
 print(plot)
 dev.off()
