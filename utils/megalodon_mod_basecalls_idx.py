@@ -7,7 +7,8 @@ def parseArgs():
     args=parser.parse_args()
     return args
 
-
+##inspired by nanocompore indexting
+##https://github.com/tleonardi/nanocompore
 def make_idx(modfile, idxfile):
     '''
     index the mod_basecalls
