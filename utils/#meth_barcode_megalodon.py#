@@ -42,7 +42,8 @@ def find_thresh(pmodratio):
     [cmod_thresh, amod_thresh]
     '''
     #for now just take from eyeballing the rocs u made before
-    thresh=[]
+    thresh=[-7.256, -6.939]
+    return thresh
 
 '''
 ##mess around with class?

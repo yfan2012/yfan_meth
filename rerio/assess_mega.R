@@ -139,7 +139,7 @@ mega_thresh <- function(modfile, unmodfile) {
         return(conf)
     }
     thresh=as_tibble(confusion) %>%
-        mutate(area=tpr*fpr)
+        mutate(area=(1-tpr)*fpr)
     maxthresh=thresh$thresh[thresh$area==max(thresh$area)]
     return(maxthresh)
 }
