@@ -1,6 +1,7 @@
 import argparse
 import multiprocessing
 import pysam
+import math
 import numpy as np
 
 def parseArgs():
@@ -24,7 +25,44 @@ with open(modfile, 'r') as f:
     f.seek(byteoffset,0)
     readcontent=f.read(bytelen).split('\n')
     f.close()
+    
+positions=[]
+pmodratio=[]
+modtype=[]
+for i in readcontent:
+    if len(i)>0:
+        readinfo=i.split('\t')
+        positions.append([readinfo[1], int(readinfo[3])])
+        pmodratio.append(math.log10(float(readinfo[5])/float(readinfo[4])))
+        modtype.append(readinfo[6])
 
+def find_thresh(pmodratio):
+    '''
+    determine what logpmod ratio to use as a threshold
+    [cmod_thresh, amod_thresh]
+    '''
+    #for now just take from eyeballing the rocs u made before
+    thresh=[]
+
+'''
+##mess around with class?
+class readMods:
+    def __init__(self, readname, byteoffset, bytelen, modfile, seqlen):
+        self.readname=readname
+        self.byteoffset=byteoffset
+        self.bytelen=bytelen
+        self.modfile=modfile
+        self.readcontent=self.get_readcontent()
+        self.positions=get_positions(self.readcontent)
+        self.seqs=get_seqs(self.readself.seqlen)
+    def get_readcontent(self):
+        with open(self.modfile, 'r') as f:
+            f.seek(self.byteoffset,0)
+            readcontent=f.read(self.bytelen).split('\n')
+            f.close()
+        return readcontent
+    def get_info(self):
+'''        
     
     
 def per_read_calls(readinfo):

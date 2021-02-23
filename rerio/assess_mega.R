@@ -110,7 +110,40 @@ mega_roc <- function(modfile, unmodfile) {
     }
 
 }
+
+mega_thresh <- function(modfile, unmodfile) {
+    mod=read_tsv(modfile, n_max=15000000) %>%
+        mutate(modratio=log(can_log_prob/mod_log_prob)) %>%
+        mutate(meth=TRUE)
+    unmod=read_tsv(unmodfile, n_max=15000000) %>%
+        mutate(modratio=log(can_log_prob/mod_log_prob)) %>%
+        mutate(meth=FALSE)
     
+    all=rbind(mod, unmod)
+    thresholds=seq(min(all$modratio)-.05, max(all$modratio)+.05, .05)
+    
+    pos=sum(all$meth)
+    neg=sum(!all$meth)
+
+    
+    confusion=foreach(i=1:length(thresholds), .combine=rbind) %dopar% {
+        thresh=thresholds[i]
+
+        call=all$modratio > thresh
+        tp=call & all$meth
+        fp=call & !all$meth
+
+        tpr=sum(tp)/pos
+        fpr=sum(fp)/neg
+        conf=data.frame(thresh=thresh, tpr=tpr, fpr=fpr)
+        return(conf)
+    }
+    thresh=as_tibble(confusion) %>%
+        mutate(area=tpr*fpr)
+    maxthresh=thresh$thresh[thresh$area==max(thresh$area)]
+    return(maxthresh)
+}
+
 
 ##amods
 neb19=plot_mega('neb19', amods, 'Y', '')
@@ -233,3 +266,28 @@ auc=rocinfo %>%
 outauc=paste0(dbxdir, 'mega_auc.csv')
 write_csv(auc, outauc)
 
+
+##get best threshold
+threshinfo=tibble(thresh=as.numeric(),
+                  samp=as.character(),
+                  model=as.character(),
+                  base=as.character())
+for (i in 2:dim(samptable)[1]) {
+    neb=samptable[i,]
+    samp=neb$samp
+    
+    nebmega=tibble(thresh=mega_thresh(neb$modfile, neb$unmodfile),
+                   samp=samp,
+                   model='rerio',
+                   base=neb$mod)
+    nebmegav=tibble(thresh=mega_thresh(neb$vmodfile, neb$vunmodfile),
+                   samp=samp,
+                   model='vanilla',
+                   base=neb$mod)
+
+    threshinfo=bind_rows(threshinfo, nebmega, nebmegav)
+}
+threshinfo=threshinfo %>%
+    arrange(model)
+threshcsv=paste0(dbxdir, 'mega_best_thresh.csv')
+write_csv(threshinfo, threshcsv)
