@@ -6,6 +6,17 @@ import numpy as np
 import itertools
 
 
+def parseArgs():
+    parser=argparse.ArgumentParser(description='get a meth barcode per read for megalodon')
+    parser.add_argument('-m', '--modfile', type=str, required=True, help='megalodon output file with mod motif probs')
+    parser.add_argument('-r', '--reffile', type=str, required=True, help='reference genome used in megaldon')
+    parser.add_argument('-b', '--barcodefile', type=str, required=True, help='motif list file')
+    parser.add_argument('-o', '--outfile', type=str, required=True, help='output file that lists each read and each barcode number')
+    parser.add_argument('-t', '--threads', type=int, required=True, help='number of threads to use')
+    args=parser.parse_args()
+    return args
+
+
 iupacnt={
     'N': ['A', 'C', 'G', 'T'],
     'W': ['A', 'T']
@@ -82,18 +93,6 @@ class modCalls:
             bc_norm[i]=normconst
         return bc_norm
             
-        
-def parseArgs():
-    parser=argparse.ArgumentParser(description='get a meth barcode per read for megalodon')
-    parser.add_argument('-i', '--input', type=str, required=True, help='megalodon output file with mod motif probs')
-    parser.add_argument('-r', '--ref', type=str, required=True, help='reference genome used in megaldon')
-    parser.add_argument('-m', '--motif', type=str, required=True, help='motif list file')
-    parser.add_argument('-o', '--out', type=str, required=True, help='output file that lists each read and each barcode number')
-    parser.add_argument('-t', '--threads', type=int, required=True, help='number of threads to use')
-    parser.add_argument('-l', '--numreads', type=int, required=False, help='how many reads to consider')
-    args=parser.parse_args()
-    return args
-
 
 def fasta_dict(reffile):
     '''
@@ -210,19 +209,65 @@ def call_read(read, thresh, ref, barcodes, k):
     return calls
 
 
-def per_read_calls(readinfo, ref, q, r):
+def per_read_calls(readinfo, thresh, ref, barcodes, k, q):
     '''
     for a given read
     run through the pipe
     this is the function to parallel later
     '''
     read=grab_read(readinfo[0], readinfo[1], readinfo[2])
-
+    calls=call_read(read, thresh, ref, barcodes, k)
+    callinfo=[readname]
+    for i in barcodes:
+        callinfo.append(str(calls.bc_norm[i]))
+    q.put('\t'.join(callinfo))
     
-def main():
-    args=parseArgs()
+    
+def listener(q, outfile):
+    '''
+    writes from q, a manager.Queue()
+    '''
+    with open(outfile, 'w') as f:
+        while True:
+            m=q.get()
+            ##stop signal:
+            if m=='Done now, ty 4 ur service':
+                break
+            f.write(m)
+            f.flush()
+
+            
+##https://stackoverflow.com/questions/13446445/python-multiprocessing-safely-writing-to-a-file
+##stolen mostly from the aggregate_events.py
+def main(reffile, modfile, idxfile, barcodefile, threads):
+
     ref=fasta_dict(reffile)
-    idx=read_megalodon_index(idxfile)
+    readidx=read_megalodon_index(idxfile)
+    barcodes=expand_barcodes(barcodefile)
+    k=4
     
+    manager=mp.Manager()
+    q=manager.Queue()
+    pool=mp.Pool(threads)
+
+    ##one thread will be for writing 
+    watcher=pool.apply_async(listener, (q, outfile))
+
+    jobs=[]
+    for i in readidx:
+        job=pool.apply_async(per_read_calls, (readinfo, thresh, ref, k, q))
+        jobs.append(job)
+
+    ##run the jobs
+    for job in jobs:
+        job.get()
+
+    ##signal listener to stop
+    q.put('Done now, ty 4 ur service')
+    pool.close()
+    pool.join()
 
 
+if __name__ == "__main__":
+    args=parseArgs()
+    main(args.reffile, args.modfile, args.idxfile, args.barcodefile, args.threads)
