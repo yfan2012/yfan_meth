@@ -1,5 +1,5 @@
 import argparse
-import multiprocessing
+import multiprocessing as mp
 import pysam
 import math
 import numpy as np
@@ -9,6 +9,7 @@ import itertools
 def parseArgs():
     parser=argparse.ArgumentParser(description='get a meth barcode per read for megalodon')
     parser.add_argument('-m', '--modfile', type=str, required=True, help='megalodon output file with mod motif probs')
+    parser.add_argument('-i', '--idxfile', type=str, required=True, help='index of megalodon outputfile')
     parser.add_argument('-r', '--reffile', type=str, required=True, help='reference genome used in megaldon')
     parser.add_argument('-b', '--barcodefile', type=str, required=True, help='motif list file')
     parser.add_argument('-o', '--outfile', type=str, required=True, help='output file that lists each read and each barcode number')
@@ -82,17 +83,20 @@ class modCalls:
     def norm_barcode(self, barcodes):
         '''
         normalize motif counts in called motifs
-        returns counts as a proportion of 
+        returns counts as a proportion of the number you'd expect randomly 
         '''
-        numcalled=len(self.calledmotifs)
-        lencalled=len(self.calledmotifs[0])
         bc_norm={}
-        for i in self.bc_counts:
-            nummotifs=len(barcodes[i])
-            normconst=self.bc_counts[i]/((lencalled-len(i)+1)*numcalled*nummotifs/float(4**lencalled))
-            bc_norm[i]=normconst
-        return bc_norm
-            
+        if len(calledmotifs) > 0: 
+            numcalled=len(self.calledmotifs)
+            lencalled=len(self.calledmotifs[0])
+            for i in self.bc_counts:
+                nummotifs=len(barcodes[i])
+                normconst=self.bc_counts[i]/((lencalled-len(i)+1)*numcalled*nummotifs/float(4**lencalled))
+                bc_norm[i]=normconst
+        else:
+            for i in self.bc_counts:
+                bc_norm[i]=0
+        return bc_norm            
 
 def fasta_dict(reffile):
     '''
@@ -124,15 +128,15 @@ def find_thresh():
 def read_megalodon_index(idxfile):
     '''
     read the mod indexfile into a dictionary
-    readname:[byteoffset, bytelen]
+    [readname, byteoffset, bytelen]
     '''
-    readidx={}
+    readidx=[]
     with open(idxfile, 'r') as f:
         content=f.read().split('\n')
     for i in content[1:]:
         if len(i)>0:
             readinfo=i.split('\t')
-            readidx[readinfo[0]]=[int(readinfo[1]), int(readinfo[2])]
+            readidx.append([readinfo[0], int(readinfo[1]), int(readinfo[2])])
     return readidx
 
 
@@ -205,22 +209,22 @@ def call_read(read, thresh, ref, barcodes, k):
     calledmotifs=[]
     for i in poscalled:
         calledmotifs.append(ref[i[0]][i[1]-k:i[1]+k])
-    calls=modCalls(readname, calledmotifs, barcodes)
+    calls=modCalls(read.readname, calledmotifs, barcodes)
     return calls
 
 
-def per_read_calls(readinfo, thresh, ref, barcodes, k, q):
+def per_read_calls(readinfo, modfile, thresh, ref, barcodes, k, q):
     '''
     for a given read
     run through the pipe
     this is the function to parallel later
     '''
-    read=grab_read(readinfo[0], readinfo[1], readinfo[2])
+    read=grab_read(modfile, readinfo[0], readinfo[1], readinfo[2])
     calls=call_read(read, thresh, ref, barcodes, k)
-    callinfo=[readname]
+    callinfo=[calls.readname]
     for i in barcodes:
         callinfo.append(str(calls.bc_norm[i]))
-    q.put('\t'.join(callinfo))
+    q.put('\t'.join(callinfo)+'\n')
     
     
 def listener(q, outfile):
@@ -239,11 +243,11 @@ def listener(q, outfile):
             
 ##https://stackoverflow.com/questions/13446445/python-multiprocessing-safely-writing-to-a-file
 ##stolen mostly from the aggregate_events.py
-def main(reffile, modfile, idxfile, barcodefile, threads):
-
+def main(reffile, modfile, idxfile, barcodefile, outfile, threads):
     ref=fasta_dict(reffile)
     readidx=read_megalodon_index(idxfile)
     barcodes=expand_barcodes(barcodefile)
+    thresh=find_thresh()
     k=4
     
     manager=mp.Manager()
@@ -255,7 +259,7 @@ def main(reffile, modfile, idxfile, barcodefile, threads):
 
     jobs=[]
     for i in readidx:
-        job=pool.apply_async(per_read_calls, (readinfo, thresh, ref, k, q))
+        job=pool.apply_async(per_read_calls, (i, modfile, thresh, ref, barcodes, k, q))
         jobs.append(job)
 
     ##run the jobs
@@ -270,4 +274,4 @@ def main(reffile, modfile, idxfile, barcodefile, threads):
 
 if __name__ == "__main__":
     args=parseArgs()
-    main(args.reffile, args.modfile, args.idxfile, args.barcodefile, args.threads)
+    main(args.reffile, args.modfile, args.idxfile, args.barcodefile, args.outfile, args.threads)
