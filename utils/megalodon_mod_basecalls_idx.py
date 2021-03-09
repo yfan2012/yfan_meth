@@ -16,7 +16,7 @@ def make_idx(modfile, idxfile):
     note that each character is 1 byte
     '''
     with open(idxfile, 'w') as f:
-        f.write(','.join(['readname', 'byte_offset', 'byte_len'])+'\n')
+        f.write('\t'.join(['readname', 'byte_offset', 'byte_len'])+'\n')
         modinfo=open(modfile, 'r')
         byteoff=0
         bytelen=0

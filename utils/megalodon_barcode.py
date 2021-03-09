@@ -98,6 +98,7 @@ class modCalls:
                 bc_norm[i]=0
         return bc_norm            
 
+    
 def fasta_dict(reffile):
     '''
     take reference filepath
