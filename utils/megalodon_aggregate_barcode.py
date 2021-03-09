@@ -21,9 +21,9 @@ def main(reffile, modfile, idxfile, barcodefile, outfile, threads):
     '''
     a lot of this is the same in megalodon_barcode
     '''
-    ref=fast_dict(reffile)
+    ref=fasta_dict(reffile)
     readidx=read_megalodon_index(idxfile)
-    barcodes=expandbarcodes(barcodefile)
+    barcodes=expand_barcodes(barcodefile)
 
     manager=mp.Manager()
     q=manager.Queue()
