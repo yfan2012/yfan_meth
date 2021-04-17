@@ -13,6 +13,9 @@ def parseArgs():
     parser.add_argument('-r', '--reffile', type=str, required=True, help='reference genome used in megaldon')
     parser.add_argument('-b', '--barcodefile', type=str, required=True, help='motif list file')
     parser.add_argument('-o', '--outfile', type=str, required=True, help='output file that lists each read and each barcode number')
+    parser.add_argument('-a', '--abound', type=float, required=True, help='A threshold')
+    parser.add_argument('-c', '--cbound', type=float, required=True, help='C threshold')
+    parser.add_argument('-n', '--numreads', type=int, required=False, help='how many reads to consider')
     parser.add_argument('-t', '--threads', type=int, required=True, help='number of threads to use')
     args=parser.parse_args()
     return args
@@ -91,7 +94,7 @@ class modCalls:
             lencalled=len(self.calledmotifs[0])
             for i in self.bc_counts:
                 nummotifs=len(barcodes[i])
-                normconst=self.bc_counts[i]/((lencalled-len(i)+1)*numcalled*nummotifs/float(4**lencalled))
+                normconst=self.bc_counts[i]/ ( (lencalled-len(i)+1) * (4**(lencalled-len(i))) * numcalled * nummotifs /float(4**lencalled))
                 bc_norm[i]=normconst
         else:
             for i in self.bc_counts:
@@ -244,12 +247,19 @@ def listener(q, outfile):
             
 ##https://stackoverflow.com/questions/13446445/python-multiprocessing-safely-writing-to-a-file
 ##stolen mostly from the aggregate_events.py
-def main(reffile, modfile, idxfile, barcodefile, outfile, threads):
+def main(reffile, modfile, idxfile, barcodefile, outfile, abound, cbound, threads):
     ref=fasta_dict(reffile)
     readidx=read_megalodon_index(idxfile)
     barcodes=expand_barcodes(barcodefile)
-    thresh=find_thresh()
+    thresh=[abound, cbound]
     k=4
+
+    ##everything keeps in the order of the barcodes
+    bclist=['readname']
+    for i in barcodes:
+        bclist.append(i)
+    with open(outfile, 'w') as f:
+        f.write('\t'.join(bclist)+'\n')
     
     manager=mp.Manager()
     q=manager.Queue()
@@ -275,4 +285,4 @@ def main(reffile, modfile, idxfile, barcodefile, outfile, threads):
 
 if __name__ == "__main__":
     args=parseArgs()
-    main(args.reffile, args.modfile, args.idxfile, args.barcodefile, args.outfile, args.threads)
+    main(args.reffile, args.modfile, args.idxfile, args.barcodefile, args.outfile, args.abound, args.cbound, args.threads)
