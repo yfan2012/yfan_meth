@@ -13,8 +13,8 @@ def parseArgs():
     parser.add_argument('-r', '--reffile', type=str, required=True, help='reference genome used in megaldon')
     parser.add_argument('-b', '--barcodefile', type=str, required=True, help='motif list file')
     parser.add_argument('-o', '--outfile', type=str, required=True, help='output file that lists each read and each barcode number')
-    parser.add_argument('-a', '--abound', type=float, required=True, help='A threshold')
-    parser.add_argument('-c', '--cbound', type=float, required=True, help='C threshold')
+    parser.add_argument('-a', '--abound', type=float, required=False, help='A threshold')
+    parser.add_argument('-c', '--cbound', type=float, required=False, help='C threshold')
     parser.add_argument('-n', '--numreads', type=int, required=False, help='how many reads to consider')
     parser.add_argument('-t', '--threads', type=int, required=True, help='number of threads to use')
     args=parser.parse_args()
@@ -250,17 +250,12 @@ def listener(q, outfile):
 def main(reffile, modfile, idxfile, barcodefile, outfile, abound, cbound, threads):
     ref=fasta_dict(reffile)
     readidx=read_megalodon_index(idxfile)
+
+    ##everything keeps in the order of the barcodes
     barcodes=expand_barcodes(barcodefile)
     thresh=[abound, cbound]
     k=4
 
-    ##everything keeps in the order of the barcodes
-    bclist=['readname']
-    for i in barcodes:
-        bclist.append(i)
-    with open(outfile, 'w') as f:
-        f.write('\t'.join(bclist)+'\n')
-    
     manager=mp.Manager()
     q=manager.Queue()
     pool=mp.Pool(threads)
