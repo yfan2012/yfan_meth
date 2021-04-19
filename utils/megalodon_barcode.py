@@ -31,8 +31,9 @@ class readMods:
     '''
     initial thing that packages all the modinfo
     '''
-    def __init__(self, readname, positions, pmodratio, modtype):
+    def __init__(self, readname, chrname, positions, pmodratio, modtype):
         self.readname=readname
+        self.chrname=chrname
         self.afil=self.get_afil(modtype)
         self.cfil=self.get_cfil(modtype)
         self.apos=self.get_apos(positions)
@@ -63,8 +64,9 @@ class modCalls:
     '''
     package the mod calls
     '''
-    def __init__(self, readname, calledmotifs, barcodes):
+    def __init__(self, readname, chrname, calledmotifs, barcodes):
         self.readname=readname
+        self.chrname=chrname
         self.calledmotifs=calledmotifs
         self.bc_counts=self.assign_barcode(barcodes)
         self.bc_norm=self.norm_barcode(barcodes)
@@ -123,8 +125,8 @@ def find_thresh():
     #cmods are nebdcm and neb15 (not sure why i never did roc for neb16? and neb14 specificity is uncertain)
     cmods=[1.0416759935039135, 0.9416759935039138]
     amods=[0.011380116536200191, -0.03861988346379963]
-    athresh=sum(amods)/2
     cthresh=sum(cmods)/2
+    athresh=sum(amods)/2
     thresh=[cthresh,athresh]
     return thresh
 
@@ -132,7 +134,7 @@ def find_thresh():
 def read_megalodon_index(idxfile):
     '''
     read the mod indexfile into a dictionary
-    [readname, byteoffset, bytelen]
+    [readname, chrname, byteoffset, bytelen]
     '''
     readidx=[]
     with open(idxfile, 'r') as f:
@@ -140,15 +142,14 @@ def read_megalodon_index(idxfile):
     for i in content[1:]:
         if len(i)>0:
             readinfo=i.split('\t')
-            readidx.append([readinfo[0], int(readinfo[1]), int(readinfo[2])])
+            readidx.append([readinfo[0], readinfo[1], int(readinfo[2]), int(readinfo[3])])
     return readidx
 
 
 
-def grab_read(modfile, readname, byteoffset, bytelen):
+def grab_read(modfile, readname, chrname, byteoffset, bytelen):
     '''
     get modinfo for the read
-
     '''
     with open(modfile, 'r') as f:
         f.seek(byteoffset,0)
@@ -163,7 +164,7 @@ def grab_read(modfile, readname, byteoffset, bytelen):
             positions.append([readinfo[1], int(readinfo[3])])
             pmodratio.append(math.log10(float(readinfo[5])/float(readinfo[4])))
             modtype.append(readinfo[6])
-    read=readMods(readname, positions, pmodratio, modtype)
+    read=readMods(readname, chrname, positions, pmodratio, modtype)
     return read
 
 
@@ -213,7 +214,7 @@ def call_read(read, thresh, ref, barcodes, k):
     calledmotifs=[]
     for i in poscalled:
         calledmotifs.append(ref[i[0]][i[1]-k:i[1]+k])
-    calls=modCalls(read.readname, calledmotifs, barcodes)
+    calls=modCalls(read.readname, read.chrname, calledmotifs, barcodes)
     return calls
 
 
@@ -223,9 +224,9 @@ def per_read_calls(readinfo, modfile, thresh, ref, barcodes, k, q):
     run through the pipe
     this is the function to parallel later
     '''
-    read=grab_read(modfile, readinfo[0], readinfo[1], readinfo[2])
+    read=grab_read(modfile, readinfo[0], readinfo[1], readinfo[2], readinfo[3])
     calls=call_read(read, thresh, ref, barcodes, k)
-    callinfo=[calls.readname]
+    callinfo=[calls.readname, calls.chrname]
     for i in barcodes:
         callinfo.append(str(calls.bc_norm[i]))
     q.put('\t'.join(callinfo)+'\n')
@@ -253,7 +254,10 @@ def main(reffile, modfile, idxfile, barcodefile, outfile, abound, cbound, thread
 
     ##everything keeps in the order of the barcodes
     barcodes=expand_barcodes(barcodefile)
-    thresh=[abound, cbound]
+    if abound is not None and cbound is not None:
+        thresh=[cbound, abound]
+    else:
+        thresh=find_thresh()
     k=4
 
     manager=mp.Manager()

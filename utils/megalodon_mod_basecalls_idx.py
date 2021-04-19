@@ -16,10 +16,11 @@ def make_idx(modfile, idxfile):
     note that each character is 1 byte
     '''
     with open(idxfile, 'w') as f:
-        f.write('\t'.join(['readname', 'byte_offset', 'byte_len'])+'\n')
+        f.write('\t'.join(['readname', 'chrom', 'byte_offset', 'byte_len'])+'\n')
         modinfo=open(modfile, 'r')
         byteoff=0
         bytelen=0
+        chrname=''
         readname=''
         for line in modinfo:
             if byteoff!=0:
@@ -27,15 +28,17 @@ def make_idx(modfile, idxfile):
                     bytelen+=len(line)
                 elif readname=='':
                     readname=line.split('\t')[0]
+                    chrname=line.split('\t')[1]
                     bytelen+=len(line)
                 else:
-                    f.write('\t'.join([readname, str(byteoff), str(bytelen)])+'\n')
+                    f.write('\t'.join([readname, chrname, str(byteoff), str(bytelen)])+'\n')
                     byteoff+=bytelen
                     readname=line.split('\t')[0]
+                    chrname=line.split('\t')[1]
                     bytelen=len(line)
             else:
                 byteoff+=len(line)
-        f.write('\t'.join([readname, str(byteoff), str(bytelen)]))
+        f.write('\t'.join([readname, chrname,  str(byteoff), str(bytelen)]))
         f.close()
 
 def main(modfile, idxfile):
