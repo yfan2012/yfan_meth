@@ -15,7 +15,7 @@ class modAgg:
     def __init__(self, read, bcpos):
         self.readname=read.readname
         self.atot=self.get_a_totals(read, bcpos)
-        self.ctot=self.get_c_totals(read, bcpos)
+n        self.ctot=self.get_c_totals(read, bcpos)
         self.combined=self.get_combined()
     def get_a_totals(self, read, bcpos):
         '''
