@@ -1,5 +1,6 @@
 import argparse
 from megalodon_barcode import fasta_dict, expand_motif, expand_barcodes
+import time
 
 def parseArgs():
     parser=argparse.ArgumentParser(description='filter barcoded reads based on alignment')
@@ -11,6 +12,7 @@ def parseArgs():
     parser.add_argument('-q', '--mapq', type=int, required=False, help='min mapq')
     parser.add_argument('-l', '--minlen', type=int, required=False, help='motif list file')
     parser.add_argument('-n', '--nummotifs', type=int, required=False, help='motif list file')
+    parser.add_argument('-v', '--verbose', action='store_true', help='verbose outputs')
     args=parser.parse_args()
     return args
 
@@ -84,14 +86,21 @@ def filter_mapq(aligns, minmapq):
     return readlist
 
 
-def filter_nummotifs(aligns, ref, barcodes, minmotifs):
+def filter_nummotifs(aligns, ref, barcodes, minmotifs, verbose):
     '''
     filter for number of motifs that need to be present
     takes in list of reads as alignment objects
     returns list of reads as alignment objects
     '''
+    start_time=time.time()
     readlist=[]
+    count=0
     for i in aligns:
+        count+=1
+        if verbose and count % 50000==0:
+            elapsed=round(time.time()-start_time)
+            start_time=time.time()
+            print('%d reads in %d seconds' % (count, elapsed))
         refseq=ref[i.refname][i.refstart:i.refend]
         motifcounts={}
         for motif in barcodes:
@@ -102,45 +111,64 @@ def filter_nummotifs(aligns, ref, barcodes, minmotifs):
             readlist.append(i)
     return readlist
 
-def barcode_info(aligns, megafile):
+
+def barcode_info(aligns, megafile, verbose):
     '''
     add barcode info to alignments
     takes in list of alignment objects wihtout barcode info
     returns list of alignment objects with barcode info
     '''
+    start_time=time.time()
     barcodeinfo={}
     with open(megafile, 'r') as f:
         content=f.read().split('\n')
     for i in content:
         readinfo=i.split('\t')
         barcodeinfo[readinfo[0]]=readinfo[1:]
+    count=0
     for i in aligns:
+        count+=1
+        if verbose and count % 50000==0:
+            elapsed=round(time.time()-start_time)
+            start_time=time.time()
+            print('%d reads in %d seconds' % (count, elapsed))
         if i.readname in barcodeinfo: #aligned read might have been filtered out already
             i.getbarcode(barcodeinfo[i.readname])
     return aligns
 
 
-def main(alignfile, reffile, megafile, barcodefile, outfile, minmapq, minlen, minmotifs):
+def main(alignfile, reffile, megafile, barcodefile, outfile, minmapq, minlen, minmotifs, verbose):
     ref=fasta_dict(reffile)
     barcodes=expand_barcodes(barcodefile)
     
     if alignfile.split('.')[-1]=='paf':
+        if verbose:
+            print('Reading paf file')
         aligns=get_align_ranges_paf(alignfile)
 
     if minmapq is not None:
+        if verbose:
+            print('Filtering for mapq')
         aligns=filter_mapq(aligns, minmapq)
         numpass=len(aligns)
-        print('Number of reads passing mapq filter: %d' % (numpass))
+        if verbose:
+            print('Number of reads passing mapq filter: %d' % (numpass))
     if minlen is not None:
+        print('Filtering for length')
         aligns=filter_length(aligns, minlen)
         numpass=len(aligns)
-        print('Number of reads passing length filter: %d' % (numpass))
+        if verbose:
+            print('Number of reads passing length filter: %d' % (numpass))
     if minmotifs is not None:
-        aligns=filter_nummotifs(aligns, ref, barcodes, minmotifs)
+        print('Filtering for number of motifs')
+        aligns=filter_nummotifs(aligns, ref, barcodes, minmotifs, verbose)
         numpass=len(aligns)
-        print('Number of reads passing min motif filter: %d' % (numpass))
+        if verbose:
+            print('Number of reads passing min motif filter: %d' % (numpass))
 
-    aligned_barcodes=barcode_info(aligns, megafile)
+    if verbose:
+        print('Matching barcode info')
+    aligned_barcodes=barcode_info(aligns, megafile, verbose)
         
     with open(outfile, 'w') as f:
         for i in aligned_barcodes:
@@ -152,4 +180,4 @@ def main(alignfile, reffile, megafile, barcodefile, outfile, minmapq, minlen, mi
                 
 if __name__ == "__main__":
     args=parseArgs()
-    main(args.alignfile, args.reffile, args.megafile, args.barcodefile, args.outfile, args.mapq, args.minlen, args.nummotifs)
+    main(args.alignfile, args.reffile, args.megafile, args.barcodefile, args.outfile, args.mapq, args.minlen, args.nummotifs, args.verbose)
