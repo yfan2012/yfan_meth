@@ -16,13 +16,15 @@ def parseArgs():
     args=parser.parse_args()
     return args
 
+
 iupacnt={
     'N': ['A', 'C', 'G', 'T'],
     'W': ['A', 'T'],
     'K': ['G', 'T'],
+    'S': ['G', 'C'],
+    'M': ['A', 'C'],
     'V': ['G', 'C', 'A']
 }
-
 ##for testing
 ##alignfile='/mithril/Data/Nanopore/projects/methbin/align/neb11/neb11_sub.paf'
 ##reffile='/mithril/Data/Nanopore/projects/methbin/reference/allsamps.fa'
@@ -99,7 +101,6 @@ def filter_nummotifs(aligns, ref, barcodes, minmotifs, verbose):
         count+=1
         if verbose and count % 50000==0:
             elapsed=round(time.time()-start_time)
-            start_time=time.time()
             print('%d reads in %d seconds' % (count, elapsed))
         refseq=ref[i.refname][i.refstart:i.refend]
         motifcounts={}
@@ -118,20 +119,13 @@ def barcode_info(aligns, megafile, verbose):
     takes in list of alignment objects wihtout barcode info
     returns list of alignment objects with barcode info
     '''
-    start_time=time.time()
     barcodeinfo={}
     with open(megafile, 'r') as f:
         content=f.read().split('\n')
     for i in content:
         readinfo=i.split('\t')
-        barcodeinfo[readinfo[0]]=readinfo[1:]
-    count=0
+        barcodeinfo[readinfo[0]]=readinfo[2:]
     for i in aligns:
-        count+=1
-        if verbose and count % 50000==0:
-            elapsed=round(time.time()-start_time)
-            start_time=time.time()
-            print('%d reads in %d seconds' % (count, elapsed))
         if i.readname in barcodeinfo: #aligned read might have been filtered out already
             i.getbarcode(barcodeinfo[i.readname])
     return aligns
