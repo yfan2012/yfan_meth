@@ -33,8 +33,8 @@ iupacnt={
 '''
 for testing:
 reffile='/mithril/Data/Nanopore/projects/methbin/reference/allsamps.fa'
-idxfile='/mithril/Data/Nanopore/projects/methbin/megalodon/nebdcm/nebdcm/nebdcm_mod_basecalls.txt.idx'
-modfile='/mithril/Data/Nanopore/projects/methbin/megalodon/nebdcm/nebdcm/nebdcm_mod_basecalls.txt'
+idxfile='/mithril/Data/Nanopore/projects/methbin/megalodon/test/testdcm_mod_basecalls.txt.idx'
+modfile='/mithril/Data/Nanopore/projects/methbin/megalodon/test/testdcm_mod_basecalls.txt'
 barcodefile='/home/yfan/Code/yfan_nanopore/mdr/qc/barcodes.txt'
 '''
 
@@ -118,7 +118,7 @@ class modCalls:
                 bc_norm[i]=0
         for i in self.bc_counts:
             if self.motifcounts[i]==0:
-                self.bc_counts[i]=None
+                bc_norm[i]=None
         return bc_norm            
 
     
