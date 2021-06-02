@@ -23,7 +23,9 @@ iupacnt={
     'K': ['G', 'T'],
     'S': ['G', 'C'],
     'M': ['A', 'C'],
-    'V': ['G', 'C', 'A']
+    'V': ['G', 'C', 'A'],
+    'Y': ['C', 'T'],
+    'R': ['A', 'G']
 }
 ##for testing
 ##alignfile='/mithril/Data/Nanopore/projects/methbin/align/neb11/neb11_sub.paf'
