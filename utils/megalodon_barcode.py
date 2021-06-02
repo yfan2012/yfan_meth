@@ -1,9 +1,10 @@
+import itertools
 import argparse
 import multiprocessing as mp
 import pysam
 import math
 import numpy as np
-import itertools
+from itertools import repeat
 
 
 def parseArgs():
@@ -139,10 +140,10 @@ def find_thresh():
     '''
     determine what logpmod ratio to use as a threshold
     [cmod_thresh, amod_thresh]
+    for now just take from the rerio roc u made before
+    mean of the cmods and mean of the amods
+    cmods are nebdcm and neb15 (not sure why i never did roc for neb16? and neb14 specificity is uncertain)
     '''
-    #for now just take from the rerio roc u made before
-    #mean of the cmods and mean of the amods
-    #cmods are nebdcm and neb15 (not sure why i never did roc for neb16? and neb14 specificity is uncertain)
     cmods=[1.0416759935039135, 0.9416759935039138]
     amods=[0.011380116536200191, -0.03861988346379963]
     cthresh=sum(cmods)/2
@@ -253,7 +254,7 @@ def call_read(read, thresh, ref, barcodes, k):
     return calls
 
 
-def per_read_calls(readinfo, modfile, thresh, ref, barcodes, k, q):
+def per_read_calls(readinfo, modfile, thresh, ref, barcodes, k, L):
     '''
     for a given read
     run through the pipe
@@ -264,25 +265,10 @@ def per_read_calls(readinfo, modfile, thresh, ref, barcodes, k, q):
     callinfo=[calls.readname, calls.chrname]
     for i in barcodes:
         callinfo.append(str(calls.bc_norm[i]))
-    q.put('\t'.join(callinfo)+'\n')
+    L.append('\t'.join(callinfo)+'\n')
     
     
-def listener(q, outfile):
-    '''
-    writes from q, a manager.Queue()
-    '''
-    with open(outfile, 'w') as f:
-        while True:
-            m=q.get()
-            ##stop signal:
-            if m=='Done now, ty 4 ur service':
-                break
-            f.write(m)
-            f.flush()
 
-            
-##https://stackoverflow.com/questions/13446445/python-multiprocessing-safely-writing-to-a-file
-##stolen mostly from the aggregate_events.py
 def main(reffile, modfile, idxfile, barcodefile, outfile, abound, cbound, threads):
     ref=fasta_dict(reffile)
     readidx=read_megalodon_index(idxfile)
@@ -294,28 +280,16 @@ def main(reffile, modfile, idxfile, barcodefile, outfile, abound, cbound, thread
     else:
         thresh=find_thresh()
     k=4
-
+    
     manager=mp.Manager()
-    q=manager.Queue()
+    L=manager.list()
     pool=mp.Pool(threads)
-
-    ##one thread will be for writing 
-    watcher=pool.apply_async(listener, (q, outfile))
-
-    jobs=[]
-    for i in readidx:
-        job=pool.apply_async(per_read_calls, (i, modfile, thresh, ref, barcodes, k, q))
-        jobs.append(job)
-
-    ##run the jobs
-    for job in jobs:
-        job.get()
-
-    ##signal listener to stop
-    q.put('Done now, ty 4 ur service')
+    pool.starmap(per_read_calls, zip(readidx, repeat(modfile), repeat(thresh), repeat(ref), repeat(barcodes), repeat(k), repeat(L)))
+    with open (outfile, 'w') as f:
+        for i in L:
+            f.write(i)
     pool.close()
     pool.join()
-
 
 if __name__ == "__main__":
     args=parseArgs()
