@@ -12,6 +12,7 @@ def parseArgs():
     parser.add_argument('-q', '--mapq', type=int, required=False, help='min mapq')
     parser.add_argument('-l', '--minlen', type=int, required=False, help='motif list file')
     parser.add_argument('-n', '--nummotifs', type=int, required=False, help='motif list file')
+    parser.add_argument('-t', '--outtype', type=str, required=False, help='set to "filter" if reads should just be filtered instead of motifs counted')
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose outputs')
     args=parser.parse_args()
     return args
@@ -90,7 +91,7 @@ def filter_mapq(aligns, minmapq):
     return readlist
 
 
-def filter_nummotifs(aligns, ref, barcodes, minmotifs, verbose):
+def filter_nummotifs(aligns, ref, barcodes, minmotifs, outtype, verbose):
     '''
     filter for number of motifs that need to be present
     takes in list of reads as alignment objects
@@ -99,6 +100,8 @@ def filter_nummotifs(aligns, ref, barcodes, minmotifs, verbose):
     start_time=time.time()
     readlist=[]
     count=0
+    if minmotifs is None:
+        minmotifs=-1
     for i in aligns:
         count+=1
         if verbose and count % 50000==0:
@@ -110,8 +113,11 @@ def filter_nummotifs(aligns, ref, barcodes, minmotifs, verbose):
             motifcounts[motif]=0
             for j in barcodes[motif]:
                 motifcounts[motif]+=refseq.count(j)
-        if all(x>minmotifs for x in motifcounts.values()):
-            readlist.append(i)
+        if outtype=='filter':
+            if all(x>minmotifs for x in motifcounts.values()):
+                readlist.append(i)
+        else:
+            readlist.append([i.readname, i.refname]+[x for x in motifcounts.values()])
     return readlist
 
 
@@ -133,7 +139,7 @@ def barcode_info(aligns, megafile, verbose):
     return aligns
 
 
-def main(alignfile, reffile, megafile, barcodefile, outfile, minmapq, minlen, minmotifs, verbose):
+def main(alignfile, reffile, megafile, barcodefile, outfile, minmapq, minlen, minmotifs, outtype, verbose):
     ref=fasta_dict(reffile)
     barcodes=expand_barcodes(barcodefile)
     
@@ -155,25 +161,30 @@ def main(alignfile, reffile, megafile, barcodefile, outfile, minmapq, minlen, mi
         numpass=len(aligns)
         if verbose:
             print('Number of reads passing length filter: %d' % (numpass))
-    if minmotifs is not None:
-        print('Filtering for number of motifs')
-        aligns=filter_nummotifs(aligns, ref, barcodes, minmotifs, verbose)
-        numpass=len(aligns)
-        if verbose:
-            print('Number of reads passing min motif filter: %d' % (numpass))
 
+    print('Filtering for number of motifs')
+    aligns=filter_nummotifs(aligns, ref, barcodes, minmotifs, outtype, verbose)
+    numpass=len(aligns)
     if verbose:
+        print('Number of reads passing min motif filter: %d' % (numpass))
+    if outtype=='filter':
         print('Matching barcode info')
-    aligned_barcodes=barcode_info(aligns, megafile, verbose)
+        aligned_barcodes=barcode_info(aligns, megafile, verbose)
+    else:
+        aligned_barcodes=aligns
         
     with open(outfile, 'w') as f:
-        for i in aligned_barcodes:
-            if i.barcode is not None:
-                barcodes='\t'.join(i.barcode)
-                f.write('\t'.join([i.readname, i.refname, str(i.refstart), str(i.refend), str(i.mapq), barcodes])+'\n')
+        if outtype=='filter':
+            for i in aligned_barcodes:
+                if i.barcode is not None:
+                    barcodes='\t'.join(i.barcode)
+                    f.write('\t'.join([i.readname, i.refname, str(i.refstart), str(i.refend), str(i.mapq), barcodes])+'\n')
+        else:
+            for i in aligned_barcodes:
+                f.write('\t'.join([str(x) for x in i])+'\n')
             
         
                 
 if __name__ == "__main__":
     args=parseArgs()
-    main(args.alignfile, args.reffile, args.megafile, args.barcodefile, args.outfile, args.mapq, args.minlen, args.nummotifs, args.verbose)
+    main(args.alignfile, args.reffile, args.megafile, args.barcodefile, args.outfile, args.mapq, args.minlen, args.nummotifs, args.outtype, args.verbose)
