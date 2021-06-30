@@ -1,4 +1,5 @@
 import itertools
+from bisect import bisect_left
 import argparse
 import multiprocessing as mp
 import pysam
@@ -15,10 +16,9 @@ def parseArgs():
     parser.add_argument('-r', '--reffile', type=str, required=True, help='reference genome used in megaldon')
     parser.add_argument('-b', '--barcodefile', type=str, required=True, help='motif list file')
     parser.add_argument('-o', '--outfile', type=str, required=True, help='output file that lists each ref seqname and its motif scores')
-    parser.add_argument('-c', '--covfile', type=str, required=True, help='output file that lists each ref seqname and motif coverage')
+    parser.add_argument('-v', '--covfile', type=str, required=True, help='output file that lists each ref seqname and motif coverage')
     parser.add_argument('-a', '--abound', type=float, required=False, help='A threshold')
     parser.add_argument('-c', '--cbound', type=float, required=False, help='C threshold')
-    parser.add_argument('-n', '--numreads', type=int, required=False, help='how many reads to consider')
     parser.add_argument('-t', '--threads', type=int, required=True, help='number of threads to use')
     args=parser.parse_args()
     return args
@@ -77,7 +77,7 @@ def check_position(starts, position):
     return meth
             
     
-def add_read(read_index, modfile, athresh, cthresh, motifcounts):
+def add_read(read_index, modfile, athresh, cthresh, motifstarts, motifcounts):
     '''
     take each read
     return motifcounts info 
@@ -132,7 +132,7 @@ def main(reffile, modfile, idxfile, barcodefile, outfile, covfile, abound, cboun
         for j in barcodes:
             motifcounts[i][j]=manager.list([0,0])
 
-    pool.starmap(add_read, zip(readidx, repeat(modfile), repeat(abound), repeat(cbound), repeat(motifcounts)))
+    pool.starmap(add_read, zip(readidx, repeat(modfile), repeat(abound), repeat(cbound), repeat(motifstarts), repeat(motifcounts)))
 
     motiftotals=[]
     headers=['chrname']
@@ -167,4 +167,4 @@ def main(reffile, modfile, idxfile, barcodefile, outfile, covfile, abound, cboun
 
 if __name__ == "__main__":
     args=parseArgs()
-    main(args.reffile, args.modfile, args.idxfile, args.barcodefile, args.outfile, args.covfile, args.abound, args.cbound, args.threads):
+    main(args.reffile, args.modfile, args.idxfile, args.barcodefile, args.outfile, args.covfile, args.abound, args.cbound, args.threads)
