@@ -70,7 +70,18 @@ def check_position(starts, position):
     meth=[]
     for i in starts:
         mlen=len(i)
-        nearest=bisect_left(starts[i], position)
+        rank=bisect_left(starts[i], position)
+        if rank==0:
+            nearest=0
+        elif rank==len(starts[i]):
+            nearest=rank-1
+        else:
+            abovediff=abs(starts[i][rank]-position)
+            belowdiff=abs(starts[i][rank-1]-position)
+            if abovediff < belowdiff:
+                nearest=rank
+            else:
+                nearest=rank-1
         pos=starts[i][nearest]
         if position >= pos-1 and position <= pos+mlen+1:
             meth.append(i)
@@ -109,7 +120,42 @@ def add_read(read_index, modfile, athresh, cthresh, motifstarts, motifcounts):
                             motifcounts[seqname][j][0]+=1
                         else:
                             motifcounts[seqname][j][1]+=1
-                        
+
+
+                            
+def add_read_list(read_index, modfile, athresh, cthresh, motifstarts, C, H, headers):
+    '''
+    take each read
+    return motifcounts info 
+    {motif1:[meth, unmeth], motif2:[meth, unmeth], ...}
+    '''
+    seqname=read_index[1]
+    byteoffset=read_index[2]
+    bytelen=read_index[3]
+    with open(modfile, 'r') as f:
+        f.seek(byteoffset,0)
+        readcontent=f.read(bytelen).split('\n')
+        f.close()
+    headerlen=len(headers)
+    meth=[seqname]+[0]*(headerlen-1) #query C or H is slow?
+    cov=[seqname]+[0]*(headerlen-1) #query C or H is slow?
+    for i in readcontent:
+        if len(i)>0:
+            readinfo=i.split('\t')
+            ratio=math.log10(float(readinfo[5])/float(readinfo[4]))
+            modtype=readinfo[6]
+            starts=motifstarts[seqname]
+            methinfo=check_position(starts, int(readinfo[3]))
+            if len(methinfo)>0:
+                for j in methinfo:
+                    pos=headers.index(j)
+                    cov[pos]+=1
+                    if modtype=='Y' and ratio>athresh:
+                        meth[pos]+=1
+                    if modtype=='Z' and ratio>cthresh:
+                        meth[pos]+=1
+    C.append(cov)
+    H.append(meth)
             
 
 
@@ -117,53 +163,80 @@ def main(reffile, modfile, idxfile, barcodefile, outfile, covfile, abound, cboun
     '''
     main function
     '''
+    print('reading stuff')
     ref=fasta_dict(reffile)
     barcodes=expand_barcodes(barcodefile)
     motifstarts=find_motifs(ref, barcodes)
     
     readidx=read_megalodon_index(idxfile)
 
+    headers=['chrname']
+    first=motifcounts.keys()[0]
+    headers.extend(motifcounts[first].keys())
+        
     ##set up parallel dict so the read processing func can write to it in parallel
     manager=mp.Manager()
     pool=mp.Pool(threads)
+    
+    C=manager.list()
+    C.append(headers)
+    H=manager.list()
+    H.append(headers)
+    pool.starmap(add_read, zip(readidx, repeat(modfile), repeat(abound), repeat(cbound), repeat(motifstarts), repeat(C), repeat(H), repeat(headers)))
+
+    with open (outfile, 'w') as f:
+        f.write('\t'.join(headers)+'\n')
+        for i in H:
+            f.write('\t'.join(i)+'\n')
+        f.close()
+    with open(covfile, 'w') as f:
+        f.write('\t'.join(headers)+'\n')
+        for i in C:
+            f.write('\t'.join(i)+'\n')
+        f.close()
+
+    '''
     motifcounts=manager.dict()
     for i in ref:
         motifcounts[i]=manager.dict()
         for j in barcodes:
             motifcounts[i][j]=manager.list([0,0])
-
+    
     pool.starmap(add_read, zip(readidx, repeat(modfile), repeat(abound), repeat(cbound), repeat(motifstarts), repeat(motifcounts)))
 
     motiftotals=[]
-    headers=['chrname']
-    first=motifcounts.keys()[0]
-    headers.extend(motifcounts[first].keys())
-
     allinfo=[]
     allsums=[]
+    
     for i in motifcounts:
         chrinfo=[i]
         chrsum=[i]
         for j in headers[1:]:
             counts=motifcounts[i][j]
             tot=sum(counts)
-            ratio=counts[0]/tot
-            chrinfo.append(ratio)
-            chrsum.append(tot)
+            if tot==0:
+                ratio=None
+            else:
+                ratio=counts[0]/tot
+            chrinfo.append(str(ratio))
+            chrsum.append(str(tot))
         allinfo.append(chrinfo)
         allsums.append(chrsum)
-        
+
+    
     with open (outfile, 'w') as f:
-        f.write('\t'.join(headers))
+        f.write('\t'.join(headers)+'\n')
         for i in allinfo:
-            f.write('\t'.join(i))
+            f.write('\t'.join(i)+'\n')
         f.close()
     with open(covfile, 'w') as f:
-        f.write('\t'.join(headers))
+        f.write('\t'.join(headers)+'\n')
         for i in allsums:
-            f.write('\t'.join(i))
+            f.write('\t'.join(i)+'\n')
         f.close()
-        
+    '''
+
+    
 
 if __name__ == "__main__":
     args=parseArgs()
