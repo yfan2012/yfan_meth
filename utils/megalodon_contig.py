@@ -88,41 +88,6 @@ def check_position(starts, position):
     return meth
             
     
-def add_read(read_index, modfile, athresh, cthresh, motifstarts, motifcounts):
-    '''
-    take each read
-    return motifcounts info 
-    {motif1:[meth, unmeth], motif2:[meth, unmeth], ...}
-    '''
-    byteoffset=read_index[2]
-    bytelen=read_index[3]
-    with open(modfile, 'r') as f:
-        f.seek(byteoffset,0)
-        readcontent=f.read(bytelen).split('\n')
-        f.close()
-    for i in readcontent:
-        if len(i)>0:
-            readinfo=i.split('\t')
-            ratio=math.log10(float(readinfo[5])/float(readinfo[4]))
-            modtype=readinfo[6]
-            seqname=readinfo[1]
-            starts=motifstarts[seqname]
-            methinfo=check_position(starts, int(readinfo[3]))
-            if len(methinfo)>0:
-                for j in methinfo:
-                    if modtype=='Y':
-                        if ratio>athresh:
-                            motifcounts[seqname][j][0]+=1
-                        else:
-                            motifcounts[seqname][j][1]+=1
-                    if modtype=='Z':
-                        if ratio>cthresh:
-                            motifcounts[seqname][j][0]+=1
-                        else:
-                            motifcounts[seqname][j][1]+=1
-
-
-                            
 def add_read_list(read_index, modfile, athresh, cthresh, motifstarts, C, H, headers):
     '''
     take each read
@@ -171,9 +136,8 @@ def main(reffile, modfile, idxfile, barcodefile, outfile, covfile, abound, cboun
     readidx=read_megalodon_index(idxfile)
 
     headers=['chrname']
-    first=motifcounts.keys()[0]
-    headers.extend(motifcounts[first].keys())
-        
+    headers.extend(barcodes.keys())
+    
     ##set up parallel dict so the read processing func can write to it in parallel
     manager=mp.Manager()
     pool=mp.Pool(threads)
@@ -182,62 +146,19 @@ def main(reffile, modfile, idxfile, barcodefile, outfile, covfile, abound, cboun
     C.append(headers)
     H=manager.list()
     H.append(headers)
-    pool.starmap(add_read, zip(readidx, repeat(modfile), repeat(abound), repeat(cbound), repeat(motifstarts), repeat(C), repeat(H), repeat(headers)))
+    pool.starmap(add_read_list, zip(readidx, repeat(modfile), repeat(abound), repeat(cbound), repeat(motifstarts), repeat(C), repeat(H), repeat(headers)))
 
     with open (outfile, 'w') as f:
-        f.write('\t'.join(headers)+'\n')
         for i in H:
-            f.write('\t'.join(i)+'\n')
+            f.write('\t'.join([str(x) for x in i])+'\n')
         f.close()
     with open(covfile, 'w') as f:
-        f.write('\t'.join(headers)+'\n')
         for i in C:
-            f.write('\t'.join(i)+'\n')
+            f.write('\t'.join([str(x) for x in i])+'\n')
         f.close()
 
-    '''
-    motifcounts=manager.dict()
-    for i in ref:
-        motifcounts[i]=manager.dict()
-        for j in barcodes:
-            motifcounts[i][j]=manager.list([0,0])
-    
-    pool.starmap(add_read, zip(readidx, repeat(modfile), repeat(abound), repeat(cbound), repeat(motifstarts), repeat(motifcounts)))
 
-    motiftotals=[]
-    allinfo=[]
-    allsums=[]
-    
-    for i in motifcounts:
-        chrinfo=[i]
-        chrsum=[i]
-        for j in headers[1:]:
-            counts=motifcounts[i][j]
-            tot=sum(counts)
-            if tot==0:
-                ratio=None
-            else:
-                ratio=counts[0]/tot
-            chrinfo.append(str(ratio))
-            chrsum.append(str(tot))
-        allinfo.append(chrinfo)
-        allsums.append(chrsum)
-
-    
-    with open (outfile, 'w') as f:
-        f.write('\t'.join(headers)+'\n')
-        for i in allinfo:
-            f.write('\t'.join(i)+'\n')
-        f.close()
-    with open(covfile, 'w') as f:
-        f.write('\t'.join(headers)+'\n')
-        for i in allsums:
-            f.write('\t'.join(i)+'\n')
-        f.close()
-    '''
-
-    
-
+        
 if __name__ == "__main__":
     args=parseArgs()
     main(args.reffile, args.modfile, args.idxfile, args.barcodefile, args.outfile, args.covfile, args.abound, args.cbound, args.threads)
