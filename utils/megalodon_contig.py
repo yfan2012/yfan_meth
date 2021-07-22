@@ -82,7 +82,7 @@ def check_position(starts, position):
                 nearest=rank
             else:
                 nearest=rank-1
-        pos=starts[i][nearest]
+            pos=starts[i][nearest]
         if position >= pos-1 and position <= pos+mlen+1:
             meth.append(i)
     return meth
@@ -110,7 +110,11 @@ def add_read_list(read_index, modfile, athresh, cthresh, motifstarts, C, H, head
             ratio=math.log10(float(readinfo[5])/float(readinfo[4]))
             modtype=readinfo[6]
             starts=motifstarts[seqname]
-            methinfo=check_position(starts, int(readinfo[3]))
+            try:
+                methinfo=check_position(starts, int(readinfo[3]))
+            except:
+                print(read_index[0])
+                break
             if len(methinfo)>0:
                 for j in methinfo:
                     pos=headers.index(j)
