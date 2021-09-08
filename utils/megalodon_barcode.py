@@ -5,7 +5,7 @@ import pysam
 import math
 import numpy as np
 from itertools import repeat
-
+import math
 
 def parseArgs():
     parser=argparse.ArgumentParser(description='get a meth barcode per read for megalodon')
@@ -254,20 +254,21 @@ def call_read(read, thresh, ref, barcodes, k):
     return calls
 
 
-def per_read_calls(readinfo, modfile, thresh, ref, barcodes, k, L):
+def per_read_calls(idxchunk, modfile, thresh, ref, barcodes, k, L):
     '''
     for a given read
     run through the pipe
     this is the function to parallel later
     '''
-    read=grab_read(modfile, readinfo[0], readinfo[1], readinfo[2], readinfo[3])
-    calls=call_read(read, thresh, ref, barcodes, k)
-    callinfo=[calls.readname, calls.chrname]
-    for i in barcodes:
-        callinfo.append(str(calls.bc_norm[i]))
-    L.append('\t'.join(callinfo)+'\n')
-    
-    
+    holdreads=[]
+    for readinfo in idxchunk:
+        read=grab_read(modfile, readinfo[0], readinfo[1], readinfo[2], readinfo[3])
+        calls=call_read(read, thresh, ref, barcodes, k)
+        callinfo=[calls.readname, calls.chrname]
+        for i in barcodes:
+            callinfo.append(str(calls.bc_norm[i]))
+        holdreads.append('\t'.join(callinfo)+'\n')
+    L+=holdreads    
 
 def main(reffile, modfile, idxfile, barcodefile, outfile, abound, cbound, threads):
     ref=fasta_dict(reffile)
@@ -280,11 +281,22 @@ def main(reffile, modfile, idxfile, barcodefile, outfile, abound, cbound, thread
     else:
         thresh=find_thresh()
     k=4
+
+    ##split idx into chunks
+    idxchunks=[]
+    chunksize=math.ceil(len(readidx)/threads)
+    for i in range(0,threads):
+        start=i*chunksize
+        end=(i+1)*chunksize
+        if len(readidx)<end:
+            idxchunks.append(readidx[start:])
+        else:
+            idxchunks.append(readidx[start:end])
     
     manager=mp.Manager()
     L=manager.list()
     pool=mp.Pool(threads)
-    pool.starmap(per_read_calls, zip(readidx, repeat(modfile), repeat(thresh), repeat(ref), repeat(barcodes), repeat(k), repeat(L)))
+    pool.starmap(per_read_calls, zip(idxchunks, repeat(modfile), repeat(thresh), repeat(ref), repeat(barcodes), repeat(k), repeat(L)))
     with open (outfile, 'w') as f:
         for i in L:
             f.write(i)
