@@ -35,10 +35,10 @@ iupacnt={
 
 '''
 for testing:
-reffile='/mithril/Data/Nanopore/projects/methbin/reference/allsamps.fa'
-idxfile='/mithril/Data/Nanopore/projects/methbin/megalodon/test/testdcm_mod_basecalls.txt.idx'
-modfile='/mithril/Data/Nanopore/projects/methbin/megalodon/test/testdcm_mod_basecalls.txt'
-barcodefile='/home/yfan/Code/yfan_nanopore/mdr/qc/barcodes.txt'
+reffile='/uru/Data/Nanopore/projects/read_class/zymo/ref/zymo_all.fa'
+idxfile='/mithril/Data/Nanopore/projects/methbin/zymo/megalodon/20190809_zymo_control/per_read_modified_base_calls.txt.small.idx'
+modfile='/mithril/Data/Nanopore/projects/methbin/zymo/megalodon/20190809_zymo_control/per_read_modified_base_calls.txt'
+barcodefile='/home/yfan/Code/yfan_nanopore/mdr/rebase/barcodes20.txt'
 '''
 
 
@@ -46,9 +46,10 @@ class readMods:
     '''
     initial thing that packages all the modinfo
     '''
-    def __init__(self, readname, chrname, positions, pmodratio, modtype, minpos, maxpos):
+    def __init__(self, readname, chrname, strand, positions, pmodratio, modtype, minpos, maxpos):
         self.readname=readname
         self.chrname=chrname
+        self.strand=strand
         self.minpos=minpos
         self.maxpos=maxpos
         self.afil=self.get_afil(modtype)
@@ -81,14 +82,15 @@ class modCalls:
     '''
     package the mod calls
     '''
-    def __init__(self, readname, chrname, calledmotifs, barcodes, motifcounts):
+    def __init__(self, readname, chrname, strand, calledmotifs, barcodes, motifcounts):
         self.readname=readname
         self.chrname=chrname
+        self.strand=strand
         self.calledmotifs=calledmotifs
         self.motifcounts=motifcounts
-        self.bc_counts=self.assign_barcode(barcodes)
+        self.bc_counts=self.assign_barcode(barcodes, strand)
         self.bc_norm=self.norm_barcode(barcodes)
-    def assign_barcode(self, barcodes):
+    def assign_barcode(self, barcodes, strand):
         '''
         take called motifs
         count how many have each motif
@@ -99,7 +101,11 @@ class modCalls:
         for i in self.calledmotifs:
             for j in barcodes:
                 for k in barcodes[j]:
-                    if k in i:
+                    if strand=='-':
+                        seq=revcomp(k)
+                    else:
+                        seq=k
+                    if seq in i:
                         bc_counts[j]+=1
                         break
         return bc_counts
@@ -124,7 +130,7 @@ class modCalls:
                 bc_norm[i]=None
         return bc_norm            
 
-    
+
 def fasta_dict(reffile):
     '''
     take reference filepath
@@ -136,6 +142,17 @@ def fasta_dict(reffile):
     return fastadict
 
 
+def revcomp(seq):
+    '''
+    reverse complement a sequence
+    '''
+    key={'A': 'T', 'T':'A', 'G':'C',  'C':'G'}
+    newseq=''
+    for i in seq:
+        newseq+=key[i]
+    return newseq[::-1]
+
+    
 def find_thresh():
     '''
     determine what logpmod ratio to use as a threshold
@@ -152,6 +169,7 @@ def find_thresh():
     return thresh
 
 
+##for testing: idxfile='/mithril/Data/Nanopore/projects/methbin/zymo/megalodon/20190809_zymo_control/per_read_modified_base_calls.txt.idx'
 def read_megalodon_index(idxfile):
     '''
     read the mod indexfile into a dictionary
@@ -163,11 +181,11 @@ def read_megalodon_index(idxfile):
     for i in content[1:]:
         if len(i)>0:
             readinfo=i.split('\t')
-            readidx.append([readinfo[0], readinfo[1], int(readinfo[2]), int(readinfo[3])])
+            readidx.append([readinfo[0], readinfo[1], int(readinfo[2]), int(readinfo[3]), readinfo[4]])
     return readidx
 
 
-def get_num_motifs(chrname, minpos, maxpos, ref, barcodes):
+def get_num_motifs(chrname, minpos, maxpos, ref, barcodes, strand):
     '''
     count how many of each motif a read covers
     '''
@@ -175,12 +193,16 @@ def get_num_motifs(chrname, minpos, maxpos, ref, barcodes):
     for bc in barcodes:
         counts=0
         for motif in barcodes[bc]:
-            counts+=ref[chrname][minpos:maxpos].count(motif)
+            if strand=='-':
+                revmotif=revcomp(motif)
+                counts+=ref[chrname][minpos:maxpos].count(revmotif)
+            else:
+                counts+=ref[chrname][minpos:maxpos].count(motif)
         motifcounts[bc]=counts
     return motifcounts
             
 
-def grab_read(modfile, readname, chrname, byteoffset, bytelen):
+def grab_read(modfile, readname, chrname, byteoffset, bytelen, strand):
     '''
     get modinfo for the read
     '''
@@ -199,7 +221,7 @@ def grab_read(modfile, readname, chrname, byteoffset, bytelen):
             modtype.append(readinfo[6])
     minpos=min(positions[0][1], positions[-1][1])
     maxpos=max(positions[0][1], positions[-1][1])
-    read=readMods(readname, chrname, positions, pmodratio, modtype, minpos, maxpos)
+    read=readMods(readname, chrname, strand, positions, pmodratio, modtype, minpos, maxpos)
     return read
 
 
@@ -222,7 +244,8 @@ def expand_motif(motifs):
                     newmotifs.extend([i.replace(j,k,1) for k in iupacnt[j]])
         return expand_motif(newmotifs)
 
-    
+
+##for testing: barcodefile='/home/yfan/Code/yfan_nanopore/mdr/rebase/barcodes20.txt'
 def expand_barcodes(barcodefile):
     '''
     take barcodefile
@@ -249,8 +272,8 @@ def call_read(read, thresh, ref, barcodes, k):
     calledmotifs=[]
     for i in poscalled:
         calledmotifs.append(ref[i[0]][i[1]-k:i[1]+k])
-    motifcounts=get_num_motifs(read.chrname, read.minpos, read.maxpos, ref, barcodes)
-    calls=modCalls(read.readname, read.chrname, calledmotifs, barcodes, motifcounts)
+    motifcounts=get_num_motifs(read.chrname, read.minpos, read.maxpos, ref, barcodes, read.strand)
+    calls=modCalls(read.readname, read.chrname, read.strand, calledmotifs, barcodes, motifcounts)
     return calls
 
 
@@ -262,7 +285,7 @@ def per_read_calls(idxchunk, modfile, thresh, ref, barcodes, k, L):
     '''
     holdreads=[]
     for readinfo in idxchunk:
-        read=grab_read(modfile, readinfo[0], readinfo[1], readinfo[2], readinfo[3])
+        read=grab_read(modfile, readinfo[0], readinfo[1], readinfo[2], readinfo[3], readinfo[4])
         calls=call_read(read, thresh, ref, barcodes, k)
         callinfo=[calls.readname, calls.chrname]
         for i in barcodes:
@@ -270,6 +293,7 @@ def per_read_calls(idxchunk, modfile, thresh, ref, barcodes, k, L):
         holdreads.append('\t'.join(callinfo)+'\n')
     L+=holdreads    
 
+    
 def main(reffile, modfile, idxfile, barcodefile, outfile, abound, cbound, threads):
     ref=fasta_dict(reffile)
     readidx=read_megalodon_index(idxfile)
