@@ -39,8 +39,9 @@ class alignment:
     '''
     stores alignment info needed for potentially filtering
     '''
-    def __init__(self, readname, refname, refstart, refend, mapq):
+    def __init__(self, readname, strand, refname, refstart, refend, mapq):
         self.readname=readname
+        self.strand=strand
         self.refname=refname
         self.refstart=int(refstart)
         self.refend=int(refend)
@@ -48,6 +49,17 @@ class alignment:
         self.barcode=None
     def getbarcode(self, barcode):
         self.barcode=barcode
+
+def revcomp(seq):
+    '''
+    get reverse complement of input sequence
+    assumes only ATCG letters are present
+    '''
+    key={'A': 'T', 'T':'A', 'G':'C',  'C':'G'}
+    newseq=''
+    for i in seq:
+        newseq+=key[i]
+    return newseq[::-1]
 
     
 def get_align_ranges_paf(paffile):
@@ -61,7 +73,7 @@ def get_align_ranges_paf(paffile):
     for i in content:
         if len(i)>0:
             r=i.split('\t')
-            pafaligns.append(alignment(r[0], r[5], r[7], r[8], r[11]))
+            pafaligns.append(alignment(r[0], r[4], r[5], r[7], r[8], r[11]))
     return pafaligns
 
 
@@ -112,7 +124,11 @@ def filter_nummotifs(aligns, ref, barcodes, minmotifs, outtype, verbose):
         for motif in barcodes:
             motifcounts[motif]=0
             for j in barcodes[motif]:
-                motifcounts[motif]+=refseq.count(j)
+                if i.strand=='-':
+                    revj=revcomp(j)
+                    motifcounts[motif]+=refseq.count(revj)
+                else:
+                    motifcounts[motif]+=refseq.count(j)
         if outtype=='filter':
             if all(x>minmotifs for x in motifcounts.values()):
                 readlist.append(i)
