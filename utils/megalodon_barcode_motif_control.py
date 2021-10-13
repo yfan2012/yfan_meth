@@ -16,6 +16,7 @@ def parseArgs():
     parser.add_argument('-r', '--reffile', type=str, required=True, help='reference genome used in megaldon')
     parser.add_argument('-b', '--barcodefile', type=str, required=True, help='motif list file')
     parser.add_argument('-o', '--outfile', type=str, required=True, help='output file that lists each read and each barcode number')
+    parser.add_argument('-s', '--supp', type=str, required=True, help='new barcode file recording randomized motifs')
     parser.add_argument('-a', '--abound', type=float, required=False, help='A threshold')
     parser.add_argument('-c', '--cbound', type=float, required=False, help='C threshold')
     parser.add_argument('-n', '--numreads', type=int, required=False, help='how many reads to consider')
@@ -28,23 +29,28 @@ def randomize_barcodes(barcodefile):
     '''
     take barcodefile
     return dict original:expanded
+    ##https://stackoverflow.com/questions/2668312/shuffle-string-in-python
     '''
     with open(barcodefile, 'r') as f:
         bcinfo=f.read().split('\n')
     barcodes={}
     for s in bcinfo:
-        ##https://stackoverflow.com/questions/2668312/shuffle-string-in-python
         i=''.join(random.sample(s,len(s)))
         if len(i)>0:
             barcodes[i]=expand_motif([i])
     return barcodes
-    
-def main(reffile, modfile, idxfile, barcodefile, outfile, abound, cbound, threads):
+
+
+def main(reffile, modfile, idxfile, barcodefile, outfile, abound, cbound, threads, suppfile):
     ref=fasta_dict(reffile)
     readidx=read_megalodon_index(idxfile)
 
     ##everything keeps in the order of the barcodes
     barcodes=randomize_barcodes(barcodefile)
+    with open(suppfile, 'w') as f:
+        for i in barcodes:
+            f.write(i+'\n')
+
     if abound is not None and cbound is not None:
         thresh=[cbound, abound]
     else:
@@ -74,4 +80,4 @@ def main(reffile, modfile, idxfile, barcodefile, outfile, abound, cbound, thread
 
 if __name__ == "__main__":
     args=parseArgs()
-    main(args.reffile, args.modfile, args.idxfile, args.barcodefile, args.outfile, args.abound, args.cbound, args.threads)
+    main(args.reffile, args.modfile, args.idxfile, args.barcodefile, args.outfile, args.abound, args.cbound, args.threads, args.supp)
