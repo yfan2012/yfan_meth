@@ -23,6 +23,59 @@ def parseArgs():
     args=parser.parse_args()
     return args
 
+class logmodCalls:
+    '''
+    package the mod calls
+    '''
+    def __init__(self, readname, chrname, strand, calledmotifs, barcodes, motifcounts):
+        self.readname=readname
+        self.chrname=chrname
+        self.strand=strand
+        self.calledmotifs=calledmotifs
+        self.motifcounts=motifcounts
+        self.bc_counts=self.assign_barcode(barcodes, strand)
+        self.bc_norm=self.norm_barcode(barcodes)
+    def assign_barcode(self, barcodes, strand):
+        '''
+        take called motifs
+        count how many have each motif
+        '''
+        bc_counts={}
+        for i in barcodes:
+            bc_counts[i]=0
+        for i in self.calledmotifs:
+            for j in barcodes:
+                for k in barcodes[j]:
+                    if strand=='-':
+                        seq=revcomp(k)
+                    else:
+                        seq=k
+                    if seq in i:
+                        bc_counts[j]+=1
+                        break
+        return bc_counts
+    def norm_barcode(self, barcodes):
+        '''
+        normalize motif counts in called motifs
+        returns counts as a proportion of the number you'd expect randomly 
+        '''
+        bc_norm={}
+        if len(self.calledmotifs) > 0:
+            numcalled=len(self.calledmotifs)
+            lencalled=len(self.calledmotifs[0])
+            for i in self.bc_counts:
+                nummotifs=len(barcodes[i])
+                pseudocount=float((self.bc_counts[i]+1) / (1+(lencalled-len(i)+1) * (4**(lencalled-len(i))) * numcalled * nummotifs / float(4**lencalled)))
+                normconst=math.log10(pseudocount)
+                bc_norm[i]=normconst
+        else:
+            for i in self.bc_counts:
+                bc_norm[i]=0
+        for i in self.bc_counts:
+            if self.motifcounts[i]==0:
+                bc_norm[i]=None
+        return bc_norm
+
 
 def log_call_read(read, thresh, ref, barcodes, k):
     '''
@@ -40,11 +93,10 @@ def log_call_read(read, thresh, ref, barcodes, k):
     calls=logmodCalls(read.readname, read.chrname, read.strand, calledmotifs, barcodes, motifcounts)
     return calls
 
-
 def per_read_log(idxchunk, modfile, thresh, ref, barcodes, k, L):
     '''
     for a given read
-    run through the pipe, but randomize the bases that are called as methylated
+    run through the pipe, but with log scores
     '''
     holdreads=[]
     for readinfo in idxchunk:
@@ -82,7 +134,7 @@ def main(reffile, modfile, idxfile, barcodefile, outfile, abound, cbound, thread
     manager=mp.Manager()
     L=manager.list()
     pool=mp.Pool(threads)
-    pool.starmap(per_read_calls, zip(idxchunks, repeat(modfile), repeat(thresh), repeat(ref), repeat(barcodes), repeat(k), repeat(L)))
+    pool.starmap(per_read_log, zip(idxchunks, repeat(modfile), repeat(thresh), repeat(ref), repeat(barcodes), repeat(k), repeat(L)))
     with open (outfile, 'w') as f:
         for i in L:
             f.write(i)

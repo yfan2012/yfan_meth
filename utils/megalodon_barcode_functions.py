@@ -114,58 +114,6 @@ class modCalls:
                 bc_norm[i]=None
         return bc_norm
     
-class logmodCalls:
-    '''
-    package the mod calls
-    '''
-    def __init__(self, readname, chrname, strand, calledmotifs, barcodes, motifcounts):
-        self.readname=readname
-        self.chrname=chrname
-        self.strand=strand
-        self.calledmotifs=calledmotifs
-        self.motifcounts=motifcounts
-        self.bc_counts=self.assign_barcode(barcodes, strand)
-        self.bc_norm=self.norm_barcode(barcodes)
-    def assign_barcode(self, barcodes, strand):
-        '''
-        take called motifs
-        count how many have each motif
-        '''
-        bc_counts={}
-        for i in barcodes:
-            bc_counts[i]=0
-        for i in self.calledmotifs:
-            for j in barcodes:
-                for k in barcodes[j]:
-                    if strand=='-':
-                        seq=revcomp(k)
-                    else:
-                        seq=k
-                    if seq in i:
-                        bc_counts[j]+=1
-                        break
-        return bc_counts
-    def norm_barcode(self, barcodes):
-        '''
-        normalize motif counts in called motifs
-        returns counts as a proportion of the number you'd expect randomly 
-        '''
-        bc_norm={}
-        if len(self.calledmotifs) > 0: 
-            numcalled=len(self.calledmotifs)
-            lencalled=len(self.calledmotifs[0])
-            for i in self.bc_counts:
-                nummotifs=len(barcodes[i])
-                normconst=math.log10(self.bc_counts[i]+1/ (1+(lencalled-len(i)+1) * (4**(lencalled-len(i))) * numcalled * nummotifs / float(4**lencalled)))
-                bc_norm[i]=normconst
-        else:
-            for i in self.bc_counts:
-                bc_norm[i]=0
-        for i in self.bc_counts:
-            if self.motifcounts[i]==0:
-                bc_norm[i]=None
-        return bc_norm            
-
 
 def fasta_dict(reffile):
     '''
