@@ -70,9 +70,6 @@ class logmodCalls:
                 bc_norm[i]=normconst
         else:
             for i in self.bc_counts:
-                bc_norm[i]=0
-        for i in self.bc_counts:
-            if self.motifcounts[i]==0:
                 bc_norm[i]=None
         return bc_norm
 
