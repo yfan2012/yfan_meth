@@ -16,13 +16,14 @@ def parseArgs():
     parser.add_argument('-b', '--barcodefile', type=str, required=True, help='motif list file')
     parser.add_argument('-o', '--outfile', type=str, required=True, help='output file that lists each read and each barcode number')
     parser.add_argument('-p', '--percentcall', type=int, required=True, help='number of threshold to consider a position methylated')
-    parser.add_argument('-l', '--lencontext', type=int, required=True, help='number of threshold to consider a position methylated')
+    parser.add_argument('-l', '--lencontext', type=int, required=True, help='length of the context considered')
+    parser.add_argument('-s', '--seqname', type=chr, required=False, help='specify chromosome if u want')
     parser.add_argument('-t', '--threads', type=int, required=True, help='number of threads to use')
     args=parser.parse_args()
     return args
 
 
-def read_meth_file(cxfile, percentcall):
+def read_meth_file(cxfile, percentcall, mincov, seqname):
     '''
     read in cytosine report file
     return positions with meth count greater than certain threshold
@@ -33,31 +34,31 @@ def read_meth_file(cxfile, percentcall):
     for i in content:
         if len(i)>0:
             readinfo=i.split('\t')
-            meth=float(readinfo[3])
-            unmeth=float(readinfo[4])
-            fracmeth=meth/(unmeth+meth)
-            if fracmeth>percentcall:
-                methcalled.append(i)
+            chrname=readinfo[0]
+            if chrname==seqname:
+                meth=float(readinfo[3])
+                unmeth=float(readinfo[4])
+                if meth+unmeth>=mincov:
+                    fracmeth=meth/(unmeth+meth)
+                    if fracmeth>percentcall:
+                        methcalled.append(i.split('\t'))
     return methcalled
 
 
-
-def get_contexts(methcalled, ref, lencontext, chroms):
+def get_contexts(methcalled, ref, lencontext, seqname):
     '''
     take positions called as methylated
     return list of contexts
     '''
     methseqs=[]
     for i in methcalled:
-        chrom=i[0]
-        if chrom in chroms:
-            pos=int(i[1])
-            strand=i[2]
-            seq=ref[chrom][pos-lencontext:pos+lencontext]
-            if strand=='-':
-                seq=revcomp(seq)
-            methseqs.append(seq)
-    return methseqs
+        pos=int(i[1])
+        strand=i[2]
+        seq=ref[seqname][pos-lencontext:pos+lencontext]
+        if strand=='-':
+            seq=revcomp(seq)
+        methseqs.append(seq)
+    return methseq
 
 
 def count_motif_occurences_meth(methseqs, barcodes):
@@ -75,7 +76,7 @@ def count_motif_occurences_meth(methseqs, barcodes):
     return motifcounts
 
 
-def count_motif_occurences_genome(ref, chroms, barcodes):
+def count_motif_occurences_genome(ref, seqname, barcodes):
     '''
     take ref
     return counts of each barcode occurence
@@ -83,23 +84,33 @@ def count_motif_occurences_genome(ref, chroms, barcodes):
     refmotifs={}
     for i in barcodes:
         refmotifs[i]=0
-        for motif in bracodes[i]:
-            for chrom in chroms:
-                refmotifs[i]+=ref[chrom].count(motif)
+        for motif in barcodes[i]:
+            refmotifs[i]+=ref[seqname].count(motif)
     return refmotifs
-        
 
-def main(reffile, cxfile, barcodefile, outfile, threads, percentcall, lencontext, choosechrom):
+
+def calc_normalized_occurences(motifcounts, refmotifs):
+    '''
+    take motifcounts and num of motifs in the reference (refmotifs)
+    return motifcounts normalized by refmotifs
+    '''
+    normcounts={}
+    for i in motifcounts:
+        normcounts[i]=motifcounts[i]/refmotifs[i]
+    return normcounts
+
+##for testing:
+##reffile='/uru/Data/Nanopore/projects/read_class/zymo/ref/zymo_all.fa'
+##cxfile='/mithril/Data/Nanopore/projects/methbin/zymo/truth/bisulfite/bismark/ecoli/ecoli_1_bismark_bt2_pe.CX_report.txt'
+##barcodefile='/home/yfan/Code/yfan_nanopore/mdr/rebase/barcodes20.txt'
+
+def main(reffile, cxfile, barcodefile, outfile, threads, percentcall, lencontext, seqname):
     ref=fasta_dict(reffile)
     barcodes=expand_barcodes(barcodefile)
     
-    methcalled=read_meth_file(cxfile, percentcall)
-    if choosechrom: 
-        chroms=find_chroms(methcalled)
-    else:
-        chroms=[ref.keys()]
-    methseqs=get_contexts(methcalled, ref, lencontext)
-    motifcounts=count_motif_occurences_meth(methseqs, chroms, barcodes)
+    methcalled=read_meth_file(cxfile, percentcall, mincov, seqname)
+    methseqs=get_contexts(methcalled, ref, lencontext, seqname)
+    motifcounts=count_motif_occurences_meth(methseqs, barcodes)
     refmotifs=count_motif_occurencees_genome(ref, chroms, barcodes)
         
     with open (outfile, 'w') as f:
