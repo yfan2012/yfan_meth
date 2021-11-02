@@ -130,7 +130,7 @@ def revcomp(seq):
     '''
     reverse complement a sequence
     '''
-    key={'A': 'T', 'T':'A', 'G':'C',  'C':'G', 'N':'N'}
+    key={'A': 'T', 'T':'A', 'G':'C',  'C':'G', 'N':'N', 'Y':'N'}
     newseq=''
     for i in seq:
         newseq+=key[i]

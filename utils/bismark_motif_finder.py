@@ -14,11 +14,10 @@ def parseArgs():
     parser.add_argument('-c', '--cxfile', type=str, required=True, help='bisulfite cytosine report file (*CX_report.txt)')
     parser.add_argument('-r', '--reffile', type=str, required=True, help='reference genome used in bismark analysis')
     parser.add_argument('-b', '--barcodefile', type=str, required=True, help='motif list file')
-    parser.add_argument('-o', '--outfile', type=str, required=True, help='output file that lists each read and each barcode number')
-    parser.add_argument('-p', '--percentcall', type=int, required=True, help='number of threshold to consider a position methylated')
+    parser.add_argument('-p', '--percentcall', type=float, required=True, help='number of threshold to consider a position methylated')
     parser.add_argument('-l', '--lencontext', type=int, required=True, help='length of the context considered')
-    parser.add_argument('-s', '--seqname', type=chr, required=False, help='specify chromosome if u want')
-    parser.add_argument('-t', '--threads', type=int, required=True, help='number of threads to use')
+    parser.add_argument('-m', '--mincov', type=int, required=True, help='minimum coverage required to be considered')
+    parser.add_argument('-s', '--seqname', type=str, required=False, help='specify chromosome if u want')
     args=parser.parse_args()
     return args
 
@@ -58,7 +57,7 @@ def get_contexts(methcalled, ref, lencontext, seqname):
         if strand=='-':
             seq=revcomp(seq)
         methseqs.append(seq)
-    return methseq
+    return methseqs
 
 
 def count_motif_occurences_meth(methseqs, barcodes):
@@ -96,28 +95,36 @@ def calc_normalized_occurences(motifcounts, refmotifs):
     '''
     normcounts={}
     for i in motifcounts:
-        normcounts[i]=motifcounts[i]/refmotifs[i]
+        if refmotifs[i]==0:
+            normcounts[i]=None
+        else:
+            normcounts[i]=motifcounts[i]/refmotifs[i]
     return normcounts
 
 ##for testing:
 ##reffile='/uru/Data/Nanopore/projects/read_class/zymo/ref/zymo_all.fa'
 ##cxfile='/mithril/Data/Nanopore/projects/methbin/zymo/truth/bisulfite/bismark/ecoli/ecoli_1_bismark_bt2_pe.CX_report.txt'
 ##barcodefile='/home/yfan/Code/yfan_nanopore/mdr/rebase/barcodes20.txt'
+##seqname='Escherichia_coli_chromosome'
 
-def main(reffile, cxfile, barcodefile, outfile, threads, percentcall, lencontext, seqname):
+def main(reffile, cxfile, barcodefile, percentcall, lencontext, mincov, seqname):
     ref=fasta_dict(reffile)
     barcodes=expand_barcodes(barcodefile)
     
     methcalled=read_meth_file(cxfile, percentcall, mincov, seqname)
     methseqs=get_contexts(methcalled, ref, lencontext, seqname)
     motifcounts=count_motif_occurences_meth(methseqs, barcodes)
-    refmotifs=count_motif_occurencees_genome(ref, chroms, barcodes)
-        
-    with open (outfile, 'w') as f:
-        for i in L:
-            f.write(i)
+    refmotifs=count_motif_occurences_genome(ref, seqname, barcodes)
+
+    normcounts=calc_normalized_occurences(motifcounts, refmotifs)
+    
+    normcountlist=[seqname]
+    for i in normcounts:
+        normcountlist.append(str(normcounts[i]))
+    print(','.join(normcountlist))
+    
 
 
 if __name__ == "__main__":
     args=parseArgs()
-    main(args.reffile, args.modfile, args.idxfile, args.barcodefile, args.outfile, args.abound, args.cbound, args.threads)
+    main(args.reffile, args.cxfile, args.barcodefile, args.percentcall, args.lencontext, args.mincov, args.seqname)
