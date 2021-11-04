@@ -39,33 +39,62 @@ def get_reads(readinfo, modfile):
     startbyte=readinfo[0][2]
     endbyte=readinfo[-1][2]+readinfo[-1][3]
     bytelen=endbyte-startbyte
+    readbatch=[]
     with open(modfile, 'r') as f:
         f.seek(startbyte,0)
         readcontent=f.read(bytelen).split('\n')
         f.close()
+    for i in readcontent:
+        readbatch.append(i.split('\t'))
+    return readbatch
+    
     
         
-def aggregate_reads(idxchunk, ref, modfile):
+def aggregate_reads(idxchunk, ref, modfile, thresh, am, au):
     '''
     take a batch of reads (in idxchunk)
     return aggregated read methylation calls
     '''
     aggmeth=get_empty_ref(ref)
     aggunmeth=get_empty_ref(ref)
-    read=get_reads(idxchunk, modfile)
+    readbatch=get_reads(idxchunk, modfile)
+    for i in readbatch[0:-1]:
+        ratio=math.log10(float(i[5])/float(i[4]))
+        pos=float(i[3])
+        base=ref[i[1]][int(i[3])]
+        if base=='C' or base=='G':
+            if ratio > thresh[0]:
+                aggmeth[i[1]][int(i[3])]+=1
+            else:
+                aggunmeth[i[1]][int(i[3])]+=1
+        if base=='A' or base=='T':
+            if ratio > thresh[1]:
+                aggmeth[i[1]][int(i[3])]+=1
+            else:
+                aggunmeth[i[1]][int(i[3])]+=1
+    am.append(aggmeth)
+    au.append(aggunmeth)
 
 
-def main(reffile, modfile, idxfile, barcodefile, outfile, abound, cbound, threads):
+def sum_refs(aglist, ref):
+    '''
+    take list of aggregated meth calls
+    combine them into one final thing
+    '''
+    fullmeth=get_empty_ref(ref)
+    for i in aglist:
+        for j in i:
+            fullmeth[j]=np.add(i[j], fullmeth[j])
+    return fullmeth
+
+
+def main(reffile, modfile, idxfile, outfile, threads):
     ref=fasta_dict(reffile)
     readidx=read_megalodon_index(idxfile)
 
-    ##everything keeps in the order of the barcodes
-    barcodes=expand_barcodes(barcodefile)
-    if abound is not None and cbound is not None:
-        thresh=[cbound, abound]
-    else:
-        thresh=find_thresh()
-    k=4
+    ##potentially add custom thresholds later
+    thresh=find_thresh()
+
 
     ##split idx into chunks
     idxchunks=[]
@@ -79,15 +108,24 @@ def main(reffile, modfile, idxfile, barcodefile, outfile, abound, cbound, thread
             idxchunks.append(readidx[start:end])
     
     manager=mp.Manager()
-    L=manager.list()
+    am=manager.list()
+    au=manager.list()
     pool=mp.Pool(threads)
-    pool.starmap(per_read_calls, zip(idxchunks, repeat(modfile), repeat(thresh), repeat(ref), repeat(barcodes), repeat(k), repeat(L)))
+    pool.starmap(aggregate_reads, zip(idxchunks, repeat(ref), repeat(modfile), repeat(thresh), repeat(am), repeat(au)))
+
+    fullmeth=sum_refs(am, ref)
+    fullunmeth=sum_refs(au, ref)
+
     with open (outfile, 'w') as f:
-        for i in L:
-            f.write(i)
+        for i in fullmeth:
+            chrom=i
+            for pos in fullmeth[i]:
+                towrite=[i, str(pos), str(fullmeth[i][pos]), str(fullunmeth[i][pos])]
+                f.write('\t'.join(towrite)+'\n')
+
     pool.close()
     pool.join()
 
 if __name__ == "__main__":
     args=parseArgs()
-    main(args.reffile, args.modfile, args.idxfile, args.barcodefile, args.outfile, args.abound, args.cbound, args.threads)
+    main(args.reffile, args.modfile, args.idxfile, args.outfile, args.threads)
