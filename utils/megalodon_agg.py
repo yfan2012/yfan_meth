@@ -106,20 +106,19 @@ def main(reffile, modfile, idxfile, outfile, threads):
             idxchunks.append(readidx[start:])
         else:
             idxchunks.append(readidx[start:end])
-    
+
     manager=mp.Manager()
     am=manager.list()
     au=manager.list()
     pool=mp.Pool(threads)
-    pool.starmap(aggregate_reads, zip(idxchunks, repeat(ref), repeat(modfile), repeat(thresh), repeat(am), repeat(au)))
+    pool.starmap_async(aggregate_reads, zip(idxchunks, repeat(ref), repeat(modfile), repeat(thresh), repeat(am), repeat(au)))
 
     fullmeth=sum_refs(am, ref)
     fullunmeth=sum_refs(au, ref)
 
     with open (outfile, 'w') as f:
         for i in fullmeth:
-            chrom=i
-            for pos in fullmeth[i]:
+            for pos in range(0, len(fullmeth[i])):
                 towrite=[i, str(pos), str(fullmeth[i][pos]), str(fullunmeth[i][pos])]
                 f.write('\t'.join(towrite)+'\n')
 
