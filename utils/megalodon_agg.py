@@ -7,6 +7,7 @@ import numpy as np
 from itertools import repeat
 import math
 from megalodon_barcode_functions import *
+import time
 
 
 def parseArgs():
@@ -16,6 +17,7 @@ def parseArgs():
     parser.add_argument('-r', '--reffile', type=str, required=True, help='reference genome used in megaldon')
     parser.add_argument('-o', '--outfile', type=str, required=True, help='output file that lists each read and each barcode number')
     parser.add_argument('-t', '--threads', type=int, required=True, help='number of threads to use')
+    parser.add_argument('-v', '--verbose', action='store_true', help='verbose outputs')
     args=parser.parse_args()
     return args
 
@@ -72,9 +74,7 @@ def aggregate_reads(idxchunk, ref, modfile, thresh, am, au):
                 aggmeth[i[1]][int(i[3])]+=1
             else:
                 aggunmeth[i[1]][int(i[3])]+=1
-    am.append(aggmeth)
-    au.append(aggunmeth)
-
+    return [aggmeth, aggunmeth]
 
 def sum_refs(aglist, ref):
     '''
@@ -88,13 +88,14 @@ def sum_refs(aglist, ref):
     return fullmeth
 
 
-def main(reffile, modfile, idxfile, outfile, threads):
+def main(reffile, modfile, idxfile, outfile, threads, verbose):
+    start_time=time.time()
+    if verbose:
+        print('reading reference and index files, splitting into jobs')
     ref=fasta_dict(reffile)
     readidx=read_megalodon_index(idxfile)
-
     ##potentially add custom thresholds later
     thresh=find_thresh()
-
 
     ##split idx into chunks
     idxchunks=[]
@@ -107,14 +108,39 @@ def main(reffile, modfile, idxfile, outfile, threads):
         else:
             idxchunks.append(readidx[start:end])
 
+
+    if verbose:
+        read_duration=round(time.time()-start_time)
+        print('finished reading in %d seconds' % (read_duration))
+        print('starting parallel')
+        par_start=time.time()
+    
     manager=mp.Manager()
     am=manager.list()
     au=manager.list()
     pool=mp.Pool(threads)
-    pool.starmap_async(aggregate_reads, zip(idxchunks, repeat(ref), repeat(modfile), repeat(thresh), repeat(am), repeat(au)))
+    results=[]
+    results=pool.starmap_async(aggregate_reads, zip(idxchunks, repeat(ref), repeat(modfile), repeat(thresh), repeat(am), repeat(au))).get()
+    pool.close()
 
+    if verbose:
+        par_duration=round(time.time()-par_start)
+        print('finished parallel in %d seconds' % (par_duration))
+        print('starting aggregation')
+        agg_start=time.time()
+    
+    am=[item[0] for item in results]
+    au=[item[1] for item in results]
+    
     fullmeth=sum_refs(am, ref)
     fullunmeth=sum_refs(au, ref)
+
+    if verbose:
+        agg_duration=round(time.time()-agg_start)
+        print('finished aggregation in %d seconds' % (agg_duration))
+        print('starting writing')
+        write_start=time.time()
+        
 
     with open (outfile, 'w') as f:
         for i in fullmeth:
@@ -122,9 +148,10 @@ def main(reffile, modfile, idxfile, outfile, threads):
                 towrite=[i, str(pos), str(fullmeth[i][pos]), str(fullunmeth[i][pos])]
                 f.write('\t'.join(towrite)+'\n')
 
-    pool.close()
-    pool.join()
+    if verbose:
+        write_duration=round(time.time()-write_start)
+        print('finished writing in %d seconds' % (write_duration))
 
 if __name__ == "__main__":
     args=parseArgs()
-    main(args.reffile, args.modfile, args.idxfile, args.outfile, args.threads)
+    main(args.reffile, args.modfile, args.idxfile, args.outfile, args.threads, args.verbose)
