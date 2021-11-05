@@ -1,3 +1,4 @@
+from functools import partial
 import itertools
 import argparse
 import multiprocessing as mp
@@ -5,10 +6,9 @@ import pysam
 import math
 import numpy as np
 from itertools import repeat
-import math
 from megalodon_barcode_functions import *
 import time
-
+from joblib import Parallel, delayed 
 
 def parseArgs():
     parser=argparse.ArgumentParser(description='get a meth barcode per read for megalodon')
@@ -50,9 +50,8 @@ def get_reads(readinfo, modfile):
         readbatch.append(i.split('\t'))
     return readbatch
     
-    
         
-def aggregate_reads(idxchunk, ref, modfile, thresh, am, au):
+def aggregate_reads(idxchunk, ref, modfile, thresh, q):
     '''
     take a batch of reads (in idxchunk)
     return aggregated read methylation calls
@@ -74,8 +73,10 @@ def aggregate_reads(idxchunk, ref, modfile, thresh, am, au):
                 aggmeth[i[1]][int(i[3])]+=1
             else:
                 aggunmeth[i[1]][int(i[3])]+=1
-    return [aggmeth, aggunmeth]
+    ##return [aggmeth, aggunmeth]
+    q.put([aggmeth, aggunmeth])
 
+    
 def sum_refs(aglist, ref):
     '''
     take list of aggregated meth calls
@@ -99,8 +100,8 @@ def main(reffile, modfile, idxfile, outfile, threads, verbose):
 
     ##split idx into chunks
     idxchunks=[]
-    chunksize=math.ceil(len(readidx)/threads)
-    for i in range(0,threads):
+    chunksize=math.ceil(len(readidx)/threads/5)
+    for i in range(0,threads*5):
         start=i*chunksize
         end=(i+1)*chunksize
         if len(readidx)<end:
@@ -108,21 +109,57 @@ def main(reffile, modfile, idxfile, outfile, threads, verbose):
         else:
             idxchunks.append(readidx[start:end])
 
-
     if verbose:
         read_duration=round(time.time()-start_time)
         print('finished reading in %d seconds' % (read_duration))
         print('starting parallel')
         par_start=time.time()
-    
-    manager=mp.Manager()
-    am=manager.list()
-    au=manager.list()
-    pool=mp.Pool(threads)
-    results=[]
-    results=pool.starmap_async(aggregate_reads, zip(idxchunks, repeat(ref), repeat(modfile), repeat(thresh), repeat(am), repeat(au))).get()
-    pool.close()
 
+    '''
+    #pool=mp.Pool(threads)
+    results=[]
+    for i in idxchunks:
+        res=aggregate_reads(i, ref, modfile, thresh)
+        results.append(res)
+    #results=pool.starmap_async(aggregate_reads, zip(idxchunks, repeat(ref), repeat(modfile), repeat(thresh))).get()
+    #pool.close()
+    '''
+
+    '''
+    results=[]
+    args=list(zip(idxchunks, repeat(ref), repeat(modfile), repeat(thresh)))
+    Parallel(n_jobs=threads)(delayed(aggregate_reads)(idxchunk, ref, modfile, thresh) for idxchunk, ref, modfile, thresh in args)
+    '''
+
+    thirdchunks=round(len(idxchunks)/3)
+    splits=[thirdchunks, thirdchunks*2, len(idxchunks)]
+    print(splits)
+    
+    results=[]
+    q=mp.Queue()
+    for j in splits:
+        if verbose: print('doing a split')
+        processes=[]
+        for i in idxchunks[j-thirdchunks:j]:
+            p=mp.Process(target=aggregate_reads, args=(i, ref, modfile, thresh, q,))
+            p.Daemon=True
+            processes.append(p)
+        for p in processes:
+            p.start()
+        for p in processes:
+            p.join()
+        for p in processes:
+            p.close()
+        
+        q.put('stop')
+        while True:
+            m=q.get()
+            if m=='stop':
+                break
+            results.append(m)
+
+
+            
     if verbose:
         par_duration=round(time.time()-par_start)
         print('finished parallel in %d seconds' % (par_duration))
