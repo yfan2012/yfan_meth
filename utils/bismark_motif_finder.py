@@ -127,4 +127,4 @@ def main(reffile, cxfile, barcodefile, percentcall, lencontext, mincov, seqname)
 
 if __name__ == "__main__":
     args=parseArgs()
-    main(args.reffile, args.cxfile, args.barcodefile, args.percentcall, args.lencontext, args.mincov, args.seqname)
+    main(args.reffile, args.cxfile, args.barcodefile, args.percentcall, args.lencontext, args.mincov, args.seqname, nanopore)

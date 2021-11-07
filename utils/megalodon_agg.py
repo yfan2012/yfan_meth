@@ -32,6 +32,18 @@ def get_empty_ref(ref):
     return aggcalls
 
 
+def get_strand(ref):
+    '''
+    take the refernce 
+    return strand info
+    '''
+    strands=get_empty_ref(ref)
+    for i in ref:
+        for j in range(len(ref[i])):
+            if ref[i][j]=='A' or ref[i][j]=='C':
+                strands[i][j]+=1
+    return strands
+
 def get_reads(readinfo, modfile):
     '''
     take read info from read index
@@ -107,6 +119,7 @@ def main(reffile, modfile, idxfile, outfile, threads, verbose):
     if verbose:
         print('reading reference and index files, splitting into jobs')
     ref=fasta_dict(reffile)
+    strands=get_strand(ref)
     readidx=read_megalodon_index(idxfile)
     ##potentially add custom thresholds later
     thresh=find_thresh()
@@ -137,12 +150,6 @@ def main(reffile, modfile, idxfile, outfile, threads, verbose):
     pool.starmap(aggregate_reads, zip(idxchunks, repeat(ref), repeat(modfile), repeat(thresh), repeat(L)))
     pool.close()
 
-    '''
-    results=[]
-    args=list(zip(idxchunks, repeat(ref), repeat(modfile), repeat(thresh)))
-    Parallel(n_jobs=threads)(delayed(aggregate_reads)(idxchunk, ref, modfile, thresh) for idxchunk, ref, modfile, thresh in args)
-    '''
-            
     if verbose:
         par_duration=round(time.time()-par_start)
         print('finished parallel in %d seconds' % (par_duration))
@@ -192,7 +199,7 @@ def main(reffile, modfile, idxfile, outfile, threads, verbose):
     with open (outfile, 'w') as f:
         for i in fullmeth:
             for pos in range(0, len(fullmeth[i])):
-                towrite=[i, str(pos), str(fullmeth[i][pos]), str(fullunmeth[i][pos])]
+                towrite=[i, str(pos), str(strands[i][j]), str(fullmeth[i][pos]), str(fullunmeth[i][pos])]
                 f.write('\t'.join(towrite)+'\n')
 
     if verbose:
