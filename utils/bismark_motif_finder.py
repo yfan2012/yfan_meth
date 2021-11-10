@@ -18,6 +18,8 @@ def parseArgs():
     parser.add_argument('-l', '--lencontext', type=int, required=True, help='length of the context considered')
     parser.add_argument('-m', '--mincov', type=int, required=True, help='minimum coverage required to be considered')
     parser.add_argument('-s', '--seqname', type=str, required=False, help='specify chromosome if u want')
+    parser.add_argument('-o', '--outfile', type=str, required=False, help='outfile for seqs in fasta format if u want')
+    parser.add_argument('-u', '--unkcount', action='store_true', default=False, required=False, help='report a count of unknown meth contexts')
     args=parser.parse_args()
     return args
 
@@ -65,14 +67,21 @@ def count_motif_occurences_meth(methseqs, barcodes):
     take list of meth seq contexts
     return barcode counts
     '''
+    unk=0
     motifcounts={}
     for i in barcodes:
         motifcounts[i]=0
-        for motif in barcodes[i]:
-            for seq in methseqs:
+    for seq in methseqs:
+        known=False
+        for i in barcodes:
+            for motif in barcodes[i]:
                 if motif in seq:
                     motifcounts[i]+=1
-    return motifcounts
+                    known=True
+        if not known:
+            unk+=1
+    unkinfo=[unk, len(methseqs)]
+    return motifcounts, unkinfo
 
 
 def count_motif_occurences_genome(ref, seqname, barcodes):
@@ -107,13 +116,13 @@ def calc_normalized_occurences(motifcounts, refmotifs):
 ##barcodefile='/home/yfan/Code/yfan_nanopore/mdr/rebase/barcodes20.txt'
 ##seqname='Escherichia_coli_chromosome'
 
-def main(reffile, cxfile, barcodefile, percentcall, lencontext, mincov, seqname):
+def main(reffile, cxfile, barcodefile, percentcall, lencontext, mincov, seqname, outfile, unkcount):
     ref=fasta_dict(reffile)
     barcodes=expand_barcodes(barcodefile)
     
     methcalled=read_meth_file(cxfile, percentcall, mincov, seqname)
     methseqs=get_contexts(methcalled, ref, lencontext, seqname)
-    motifcounts=count_motif_occurences_meth(methseqs, barcodes)
+    motifcounts, unkinfo=count_motif_occurences_meth(methseqs, barcodes)
     refmotifs=count_motif_occurences_genome(ref, seqname, barcodes)
 
     normcounts=calc_normalized_occurences(motifcounts, refmotifs)
@@ -122,9 +131,19 @@ def main(reffile, cxfile, barcodefile, percentcall, lencontext, mincov, seqname)
     for i in normcounts:
         normcountlist.append(str(normcounts[i]))
     print(','.join(normcountlist))
-    
 
+    if unkcount:
+        print('there are %d unclassified meth positions out of %d total methylated positions' % (unkinfo[0], unkinfo[1]))
+
+    if outfile is not None:
+        with open(outfile, 'w') as f:
+            for i in range(len(methseqs)):
+                if len(methseqs[i])> 0:
+                    pos=methcalled[i][1]
+                    name='>position'+str(pos)
+                    f.write(name+'\n')
+                    f.write(methseqs[i]+'\n')
 
 if __name__ == "__main__":
     args=parseArgs()
-    main(args.reffile, args.cxfile, args.barcodefile, args.percentcall, args.lencontext, args.mincov, args.seqname, nanopore)
+    main(args.reffile, args.cxfile, args.barcodefile, args.percentcall, args.lencontext, args.mincov, args.seqname, args.outfile, args.unkcount)

@@ -199,7 +199,7 @@ def main(reffile, modfile, idxfile, outfile, threads, verbose):
     with open (outfile, 'w') as f:
         for i in fullmeth:
             for pos in range(0, len(fullmeth[i])):
-                towrite=[i, str(pos), str(strands[i][j]), str(fullmeth[i][pos]), str(fullunmeth[i][pos])]
+                towrite=[i, str(pos), str(strands[i][pos]), str(fullmeth[i][pos]), str(fullunmeth[i][pos])]
                 f.write('\t'.join(towrite)+'\n')
 
     if verbose:
