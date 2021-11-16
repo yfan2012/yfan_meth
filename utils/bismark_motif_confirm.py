@@ -88,20 +88,21 @@ def main(cxfiledir, reffile, chrfile, motiffile, outfile):
         numcalled=0
         numcounted=0
         for i in cx:
-            seq=i[0]
-            pos=int(i[1])
-            strand=i[2]
-            called=float(i[3])
-            uncalled=float(i[4])
-            if called+uncalled>15:
-                if seq in seqs and called/(called+uncalled)>.5:
-                    numcalled+=1
-                    for j in motifs[species]:
-                        start=pos-int(j[1])+1
-                        end=start+len(j[0])
-                        motiflist=expand_motif([j[0]])
-                        if ref[seq][start:end] in motiflist:
-                            numcounted+=1
+            if len(i)>0:
+                seq=i[0]
+                pos=int(i[1])
+                strand=i[2]
+                called=float(i[3])
+                uncalled=float(i[4])
+                if called+uncalled>15:
+                    if seq in seqs and called/(called+uncalled)>.5:
+                        numcalled+=1
+                        for j in motifs[species]:
+                            start=pos-int(j[1])+1
+                            end=start+len(j[0])
+                            motiflist=expand_motif([j[0]])
+                            if ref[seq][start:end] in motiflist:
+                                numcounted+=1
         meth.append([species, str(numcalled), str(numcounted)])
 
     with open(outfile, 'w') as f:
