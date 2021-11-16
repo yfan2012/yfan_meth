@@ -18,7 +18,7 @@ def parseArgs():
     parser=argparse.ArgumentParser(description='check if cmeth motif set is complete')
     parser.add_argument('-c', '--cxfiledir', type=str, required=True, help='directory containing cxfiles')
     parser.add_argument('-r', '--reffile', type=str, required=True, help='reference genome used in bismark analysis')
-    parser.add_argument('-h', '--chrfile', type=str, required=True, help='chromosome key file')
+    parser.add_argument('-s', '--chrfile', type=str, required=True, help='chromosome key file')
     parser.add_argument('-m', '--motiffile', type=str, required=True, help='motif list for each chromosome')
     parser.add_argument('-o', '--outfile', type=str, required=True, help='motif list for each chromosome')
     args=parser.parse_args()
