@@ -34,7 +34,8 @@ def read_cx(cxfile):
         contents=f.read().split('\n')
     cx=[]
     for i in contents:
-        cx.append(i.split('\t'))
+        if len(i)>0:
+            cx.append(i.split('\t'))
     return cx
 
 
@@ -78,6 +79,11 @@ def main(cxfiledir, reffile, chrfile, motiffile, outfile):
     ref=fasta_dict(reffile)
     chroms=read_chroms(chrfile)
     motifs=read_motif(motiffile)
+    newchroms={}
+    for species in chroms:
+        if species in motifs:
+            newchroms[species]=chroms[species]
+    chroms=newchroms
 
     meth=[]
     
@@ -88,21 +94,21 @@ def main(cxfiledir, reffile, chrfile, motiffile, outfile):
         numcalled=0
         numcounted=0
         for i in cx:
-            if len(i)>0:
-                seq=i[0]
-                pos=int(i[1])
-                strand=i[2]
-                called=float(i[3])
-                uncalled=float(i[4])
-                if called+uncalled>15:
-                    if seq in seqs and called/(called+uncalled)>.5:
-                        numcalled+=1
-                        for j in motifs[species]:
-                            start=pos-int(j[1])+1
-                            end=start+len(j[0])
-                            motiflist=expand_motif([j[0]])
-                            if ref[seq][start:end] in motiflist:
-                                numcounted+=1
+            seq=i[0]
+            pos=int(i[1])
+            strand=i[2]
+            called=float(i[3])
+            uncalled=float(i[4])
+            if called+uncalled>15:
+                if seq in seqs and called/(called+uncalled)>.5:
+                    numcalled+=1
+                    for j in motifs[species]:
+                        start=pos-int(j[1])+1
+                        end=start+len(j[0])
+                        motiflist=expand_motif([j[0]])
+                        if ref[seq][start:end] in motiflist:
+                            numcounted+=1
+
         meth.append([species, str(numcalled), str(numcounted)])
 
     with open(outfile, 'w') as f:
