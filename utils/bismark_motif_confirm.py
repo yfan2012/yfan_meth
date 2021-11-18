@@ -113,7 +113,7 @@ def main(cxfiledir, reffile, chrfile, motiffile, outfile):
 
     with open(outfile, 'w') as f:
         for i in meth:
-            f.write(','.join(i))
+            f.write(','.join(i)+'\n')
 
             
 if __name__ == "__main__":
