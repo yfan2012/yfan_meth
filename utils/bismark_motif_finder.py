@@ -10,7 +10,7 @@ from megalodon_barcode_functions import *
 
 
 def parseArgs():
-    parser=argparse.ArgumentParser(description='get a meth barcode per read for megalodon')
+    parser=argparse.ArgumentParser(description='bisulfite motif finder')
     parser.add_argument('-c', '--cxfile', type=str, required=True, help='bisulfite cytosine report file (*CX_report.txt)')
     parser.add_argument('-r', '--reffile', type=str, required=True, help='reference genome used in bismark analysis')
     parser.add_argument('-b', '--barcodefile', type=str, required=True, help='motif list file')

@@ -10,11 +10,11 @@ from megalodon_barcode_functions import *
 import time
 
 def parseArgs():
-    parser=argparse.ArgumentParser(description='get a meth barcode per read for megalodon')
+    parser=argparse.ArgumentParser(description='generate a cytosine report type file from per read mod info from megalodon')
     parser.add_argument('-m', '--modfile', type=str, required=True, help='megalodon output file with mod motif probs')
     parser.add_argument('-i', '--idxfile', type=str, required=True, help='index of megalodon outputfile')
     parser.add_argument('-r', '--reffile', type=str, required=True, help='reference genome used in megaldon')
-    parser.add_argument('-o', '--outfile', type=str, required=True, help='output file that lists each read and each barcode number')
+    parser.add_argument('-o', '--outfile', type=str, required=True, help='cytosine report, bismark style')
     parser.add_argument('-t', '--threads', type=int, required=True, help='number of threads to use')
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose outputs')
     args=parser.parse_args()
