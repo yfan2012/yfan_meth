@@ -10,39 +10,16 @@ from megalodon_barcode_functions import *
 import time
 
 def parseArgs():
-    parser=argparse.ArgumentParser(description='generate a cytosine report type file from per read mod info from megalodon')
-    parser.add_argument('-m', '--modfile', type=str, required=True, help='megalodon output file with mod motif probs')
-    parser.add_argument('-i', '--idxfile', type=str, required=True, help='index of megalodon outputfile')
+    parser=argparse.ArgumentParser(description='pull out relevant positions from cx style report based on barcode')
     parser.add_argument('-r', '--reffile', type=str, required=True, help='reference genome used in megaldon')
-    parser.add_argument('-o', '--outfile', type=str, required=True, help='cytosine report, bismark style')
+    parser.add_argument('-b', '--barcodefile', type=str, required=True, help='list of motifs in the barcode')
+    parser.add_argument('-m', '--modfile', type=str, required=True, help='per read mod calls form megalodon')
+    parser.add_argument('-i', '--idxfile', type=str, required=True, help='index of per read mod calls from megalodon')
+    parser.add_argument('-o', '--outfile', type=str, required=True, help='output file')
     parser.add_argument('-t', '--threads', type=int, required=True, help='number of threads to use')
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose outputs')
     args=parser.parse_args()
     return args
-
-
-def get_empty_ref(ref):
-    '''
-    take ref dict
-    return ref dict with np array full of zeros
-    '''
-    aggcalls={}
-    for i in ref:
-        aggcalls[i]=np.zeros(len(ref[i]))
-    return aggcalls
-
-
-def get_strand(ref):
-    '''
-    take the refernce 
-    return strand info
-    '''
-    strands=get_empty_ref(ref)
-    for i in ref:
-        for j in range(len(ref[i])):
-            if ref[i][j]=='A' or ref[i][j]=='C':
-                strands[i][j]+=1
-    return strands
 
 
 def get_reads(readinfo, modfile):
@@ -65,65 +42,21 @@ def get_reads(readinfo, modfile):
         readbatch.append(i.split('\t'))
     return readbatch
     
-        
-def aggregate_reads(idxchunk, ref, modfile, thresh, L):
-    '''
-    take a batch of reads (in idxchunk)
-    return aggregated read methylation calls
-    '''
-    aggmeth=get_empty_ref(ref)
-    aggunmeth=get_empty_ref(ref)
-    readbatch=get_reads(idxchunk, modfile)
-    for i in readbatch[0:-1]:
-        ratio=math.log10(float(i[5])/float(i[4]))
-        pos=float(i[3])
-        base=ref[i[1]][int(i[3])]
-        if base=='C' or base=='G':
-            if ratio > thresh[0]:
-                aggmeth[i[1]][int(i[3])]+=1
-            else:
-                aggunmeth[i[1]][int(i[3])]+=1
-        if base=='A' or base=='T':
-            if ratio > thresh[1]:
-                aggmeth[i[1]][int(i[3])]+=1
-            else:
-                aggunmeth[i[1]][int(i[3])]+=1
-    L.append([aggmeth, aggunmeth])
 
-    
-def pre_sum_refs(aglist, ref, L):
-    '''
-    take list of aggregated meth calls
-    combine them into one final thing
-    '''
-    fullmeth=get_empty_ref(ref)
-    for i in aglist:
-        for j in i:
-            fullmeth[j]=np.add(i[j], fullmeth[j])
-    L.append(fullmeth)
-
-    
-def sum_refs(aglist, ref):
-    '''
-    take list of aggregated meth calls
-    combine them into one final thing
-    '''
-    fullmeth=get_empty_ref(ref)
-    for i in aglist:
-        for j in i:
-            fullmeth[j]=np.add(i[j], fullmeth[j])
-    return fullmeth
+##idxfile='/mithril/Data/Nanopore/projects/methbin/zymo/megalodon/20190809_zymo_control/per_read_modified_base_calls.txt.small.idx'
+##barcodefile='/home/yfan/Code/yfan_nanopore/mdr/zymo/barcodes_zymo_curated.txt'
+##modfile='/mithril/Data/Nanopore/projects/methbin/zymo/megalodon/20190809_zymo_control/per_read_modified_base_calls.txt'
+##reffile='/uru/Data/Nanopore/projects/read_class/zymo/ref/zymo_all.fa'
 
 
-def main(reffile, modfile, idxfile, outfile, threads, verbose):
+def main(reffile, barcodefile, modfile, idxfile, outfile, threads, verbose):
     start_time=time.time()
-    if verbose:
-        print('reading reference and index files, splitting into jobs')
+
+        
     ref=fasta_dict(reffile)
-    strands=get_strand(ref)
+    barcodes=expand_barcodes(barcodefile)
     readidx=read_megalodon_index(idxfile)
-    ##potentially add custom thresholds later
-    thresh=find_thresh()
+    
 
     ##split idx into chunks
     idxchunks=[]
@@ -139,11 +72,6 @@ def main(reffile, modfile, idxfile, outfile, threads, verbose):
             if len(readidx[start:end]) > 0:
                 idxchunks.append(readidx[start:end])
 
-    if verbose:
-        read_duration=round(time.time()-start_time)
-        print('finished reading in %d seconds' % (read_duration))
-        print('starting parallel')
-        par_start=time.time()
 
     manager=mp.Manager()
     L=manager.list()

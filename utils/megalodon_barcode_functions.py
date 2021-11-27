@@ -226,6 +226,7 @@ def expand_motif(motifs):
             for j in iupacnt:
                 if j in i:
                     newmotifs.extend([i.replace(j,k,1) for k in iupacnt[j]])
+        newmotifs=list(set(newmotifs))
         return expand_motif(newmotifs)
 
 
