@@ -7,7 +7,9 @@ import sys
 import numpy as np
 from itertools import repeat
 from megalodon_barcode_functions import *
+from megalodon_agg import get_reads
 import time
+import re
 
 def parseArgs():
     parser=argparse.ArgumentParser(description='pull out relevant positions from cx style report based on barcode')
@@ -22,118 +24,129 @@ def parseArgs():
     return args
 
 
-def get_reads(readinfo, modfile):
+def find_motif_positions(barcodes, ref):
     '''
-    take read info from read index
-    return batch of reads
+    take motifs in barocdes and ref
+    find all motif related positions
+    {motif:{chr:[positions in chr]}}
     '''
-    try:
-        startbyte=readinfo[0][2]
-    except IndexError:
-        print(readinfo)
-    endbyte=readinfo[-1][2]+readinfo[-1][3]
-    bytelen=endbyte-startbyte
-    readbatch=[]
-    with open(modfile, 'r') as f:
-        f.seek(startbyte,0)
-        readcontent=f.read(bytelen).split('\n')
-        f.close()
-    for i in readcontent:
-        readbatch.append(i.split('\t'))
-    return readbatch
+    motif_positions={}
+    for chrom in ref:
+        motif_positions[chrom]={}
+        for motif in barcodes:
+            positions=[]
+            for i in barcodes[motif]:
+                mlen=len(i)
+                ranges=[list(range(m.start(), m.start()+mlen)) for m in re.finditer(i, ref[chrom])]
+                for j in ranges:
+                    positions.extend(j)
+            motif_positions[chrom][motif]=set(positions)
+    return(motif_positions)
+
+
+def check_position(chrom, pos, motif_positions):
+    '''
+    given an chrom and a pos, check if it's associated with any of the meth motifs
+    return the motif(s) associated
+    returns blank list if there are no motifs assocated with the position
+    '''
+    motifhits=[]
+    for i in motif_positions[chrom]:
+        if pos in motif_positions[chrom][i]:
+            motifhits.append(i)
+    return(motifhits)
+
     
+def label_positions(p, motif_positions, modfile, q):
+    '''
+    read the appropriate bit of the modfile to get the read info
+    for each meth call in the read info, check if it's part of a relevant meth motif
+    save out the positions with relevant motifs
+    '''
+    idxchunk=p.get()
+    if idxchunk!='done':
+        readchunk=get_reads(idxchunk, modfile)
+        meth_overlaps=[]
+        for i in readchunk[:-1]:
+            chrom=i[1]
+            if chrom in list(motif_positions):
+                pos=int(i[3])
+                motif=check_position(chrom, pos, motif_positions)
+                if len(motif)>0:
+                    for j in motif:
+                        meth_overlaps.append([chrom, pos, i[2], float(i[4]), j])
+        q.put(meth_overlaps)
+    else:
+        q.put('done')
 
-##idxfile='/mithril/Data/Nanopore/projects/methbin/zymo/megalodon/20190809_zymo_control/per_read_modified_base_calls.txt.small.idx'
-##barcodefile='/home/yfan/Code/yfan_nanopore/mdr/zymo/barcodes_zymo_curated.txt'
-##modfile='/mithril/Data/Nanopore/projects/methbin/zymo/megalodon/20190809_zymo_control/per_read_modified_base_calls.txt'
-##reffile='/uru/Data/Nanopore/projects/read_class/zymo/ref/zymo_all.fa'
 
-
-def main(reffile, barcodefile, modfile, idxfile, outfile, threads, verbose):
-    start_time=time.time()
-
-        
-    ref=fasta_dict(reffile)
-    barcodes=expand_barcodes(barcodefile)
-    readidx=read_megalodon_index(idxfile)
-    
-
-    ##split idx into chunks
-    idxchunks=[]
-    chunksize=3000
+def get_idxchunks(readidx, chunksize, p, threads):
+    '''
+    split readidx into chunks for processing
+    put in to p (an input queue)
+    '''
     numchunks=math.ceil(len(readidx)/3000)
     for i in range(numchunks):
         start=i*chunksize
         end=(i+1)*chunksize
         if len(readidx)<end:
             if len(readidx[start:]) > 0:
-                idxchunks.append(readidx[start:])
+                p.put(readidx[start:])
         else:
             if len(readidx[start:end]) > 0:
-                idxchunks.append(readidx[start:end])
-
-
-    manager=mp.Manager()
-    L=manager.list()
-    pool=mp.Pool(threads)
-    pool.starmap(aggregate_reads, zip(idxchunks, repeat(ref), repeat(modfile), repeat(thresh), repeat(L)))
-    pool.close()
-
-    if verbose:
-        par_duration=round(time.time()-par_start)
-        print('finished parallel in %d seconds' % (par_duration))
-        print('starting aggregation')
-        agg_start=time.time()
-
-
-    am=[item[0] for item in L]
-    au=[item[1] for item in L]
-
-    ##split so aggregation is parallel
-    amsplit=[]
-    ausplit=[]
-    splitsize=math.ceil(len(am)/threads)
+                p.put(readidx[start:end])
     for i in range(threads):
-        start=i*splitsize
-        end=(i+1)*splitsize
-        if len(am)<end:
-            if len(am[start:]) > 0:
-                amsplit.append(am[start:])
-                ausplit.append(au[start:])
-        else:
-                amsplit.append(am[start:end])
-                ausplit.append(au[start:end])
-                
-    manager=mp.Manager()
-    mL=manager.list()
-    uL=manager.list()
-    pool=mp.Pool(threads)
-    pool.starmap(pre_sum_refs, zip(amsplit, repeat(ref), repeat(mL)))
-    pool.close()
-    
-    pool=mp.Pool(threads)
-    pool.starmap(pre_sum_refs, zip(ausplit, repeat(ref), repeat(uL)))
-    pool.close()
-    
-    fullmeth=sum_refs(mL, ref)
-    fullunmeth=sum_refs(uL, ref)
+        p.put('done')
 
-    if verbose:
-        agg_duration=round(time.time()-agg_start)
-        print('finished aggregation in %d seconds' % (agg_duration))
-        print('starting writing')
-        write_start=time.time()
         
+def writer(q, outfile, threads):
+    '''
+    writes stuff from the out q to the file
+    '''
+    donecount=0
+    with open(outfile, 'w') as f:
+        while donecount<threads:
+            m=q.get()
+            if m!='done':
+                for i in m:
+                    f.write(','.join([str(x) for x in i])+'\n')
+                    f.flush()
+            else:
+                donecount+=1
+                
+##idxfile='/mithril/Data/Nanopore/projects/methbin/zymo/megalodon/20190809_zymo_control/per_read_modified_base_calls.txt.small.idx'
+##barcodefile='/home/yfan/Code/yfan_nanopore/mdr/zymo/barcodes_zymo_curated.txt'
+##modfile='/mithril/Data/Nanopore/projects/methbin/zymo/megalodon/20190809_zymo_control/per_read_modified_base_calls.txt'
+##reffile='/uru/Data/Nanopore/projects/read_class/zymo/ref/zymo_all.fa'
 
-    with open (outfile, 'w') as f:
-        for i in fullmeth:
-            for pos in range(0, len(fullmeth[i])):
-                towrite=[i, str(pos), str(strands[i][pos]), str(fullmeth[i][pos]), str(fullunmeth[i][pos])]
-                f.write('\t'.join(towrite)+'\n')
+def main(reffile, barcodefile, modfile, idxfile, outfile, threads, verbose):
+    ref=fasta_dict(reffile)
+    ##for our purposes, don't bother with the yeast genome
+    ##this could become a prob later for bigger metagenomes though
+    
+    barcodes=expand_barcodes(barcodefile)
+    motif_positions=find_motif_positions(barcodes, ref)
+    
+    readidx=read_megalodon_index(idxfile)
+    chunksize=3000
 
-    if verbose:
-        write_duration=round(time.time()-write_start)
-        print('finished writing in %d seconds' % (write_duration))
+    manager=mp.Manager()
+    p=manager.Queue()
+    q=manager.Queue()
+
+    ps=[]
+    ps.append(mp.Process(target=get_idxchunks, args=(readidx, chunksize, p)))
+    for i in range(threads):
+        ps.append(mp.Process(target=label_positions, args=(p, motif_positions, modfile, q)))
+    ps.append(mp.Process(target=writer, args=(q, outfile)))
+
+    for i in ps:
+        i.start()
+    for i in ps:
+        i.join()
+    p.close()
+    q.close()
+    
 
 if __name__ == "__main__":
     args=parseArgs()
