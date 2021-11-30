@@ -58,7 +58,7 @@ def check_position(chrom, pos, motif_positions):
     return(motifhits)
 
     
-def label_positions(p, motif_positions, modfile, q):
+def label_positions(p, motif_positions, modfile, ref, q):
     '''
     read the appropriate bit of the modfile to get the read info
     for each meth call in the read info, check if it's part of a relevant meth motif
@@ -74,9 +74,10 @@ def label_positions(p, motif_positions, modfile, q):
                 if chrom in list(motif_positions):
                     pos=int(i[3])
                     motif=check_position(chrom, pos, motif_positions)
+                    base=ref[chrom][pos]
                     if len(motif)>0:
                         for j in motif:
-                            meth_overlaps.append([chrom, pos, i[2], float(i[4]), j])
+                            meth_overlaps.append([chrom, pos, i[2], float(i[4]), j, base])
             q.put(meth_overlaps)
         else:
             q.put('done')
@@ -140,7 +141,7 @@ def main(reffile, barcodefile, modfile, idxfile, outfile, threads, verbose):
     ps=[]
     ps.append(mp.Process(target=get_idxchunks, args=(readidx, chunksize, p, threads)))
     for i in range(threads):
-        ps.append(mp.Process(target=label_positions, args=(p, motif_positions, modfile, q)))
+        ps.append(mp.Process(target=label_positions, args=(p, motif_positions, modfile, ref, q)))
     ps.append(mp.Process(target=writer, args=(q, outfile, threads)))
 
     for i in ps:
