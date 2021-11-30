@@ -11,6 +11,7 @@ from megalodon_agg import get_reads
 import time
 import re
 
+
 def parseArgs():
     parser=argparse.ArgumentParser(description='pull out relevant positions from cx style report based on barcode')
     parser.add_argument('-r', '--reffile', type=str, required=True, help='reference genome used in megaldon')
@@ -63,21 +64,23 @@ def label_positions(p, motif_positions, modfile, q):
     for each meth call in the read info, check if it's part of a relevant meth motif
     save out the positions with relevant motifs
     '''
-    idxchunk=p.get()
-    if idxchunk!='done':
-        readchunk=get_reads(idxchunk, modfile)
-        meth_overlaps=[]
-        for i in readchunk[:-1]:
-            chrom=i[1]
-            if chrom in list(motif_positions):
-                pos=int(i[3])
-                motif=check_position(chrom, pos, motif_positions)
-                if len(motif)>0:
-                    for j in motif:
-                        meth_overlaps.append([chrom, pos, i[2], float(i[4]), j])
-        q.put(meth_overlaps)
-    else:
-        q.put('done')
+    while True:
+        idxchunk=p.get()
+        if idxchunk!='done':
+            readchunk=get_reads(idxchunk, modfile)
+            meth_overlaps=[]
+            for i in readchunk[:-1]:
+                chrom=i[1]
+                if chrom in list(motif_positions):
+                    pos=int(i[3])
+                    motif=check_position(chrom, pos, motif_positions)
+                    if len(motif)>0:
+                        for j in motif:
+                            meth_overlaps.append([chrom, pos, i[2], float(i[4]), j])
+            q.put(meth_overlaps)
+        else:
+            q.put('done')
+            break
 
 
 def get_idxchunks(readidx, chunksize, p, threads):
@@ -135,19 +138,18 @@ def main(reffile, barcodefile, modfile, idxfile, outfile, threads, verbose):
     q=manager.Queue()
 
     ps=[]
-    ps.append(mp.Process(target=get_idxchunks, args=(readidx, chunksize, p)))
+    ps.append(mp.Process(target=get_idxchunks, args=(readidx, chunksize, p, threads)))
     for i in range(threads):
         ps.append(mp.Process(target=label_positions, args=(p, motif_positions, modfile, q)))
-    ps.append(mp.Process(target=writer, args=(q, outfile)))
+    ps.append(mp.Process(target=writer, args=(q, outfile, threads)))
 
     for i in ps:
         i.start()
     for i in ps:
         i.join()
-    p.close()
-    q.close()
-    
+        
+
 
 if __name__ == "__main__":
     args=parseArgs()
-    main(args.reffile, args.modfile, args.idxfile, args.outfile, args.threads, args.verbose)
+    main(args.reffile, args.barcodefile, args.modfile, args.idxfile, args.outfile, args.threads, args.verbose)
