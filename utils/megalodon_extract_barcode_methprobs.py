@@ -14,7 +14,7 @@ import re
 
 def parseArgs():
     parser=argparse.ArgumentParser(description='pull out relevant positions from cx style report based on barcode')
-    parser.add_argument('-r', '--reffile', type=str, required=True, help='reference genome used in megaldon')
+    parser.add_argument('-r', '--reffile', type=str, required=True, help='reference genome used in megalodon')
     parser.add_argument('-b', '--barcodefile', type=str, required=True, help='list of motifs in the barcode')
     parser.add_argument('-m', '--modfile', type=str, required=True, help='per read mod calls form megalodon')
     parser.add_argument('-i', '--idxfile', type=str, required=True, help='index of per read mod calls from megalodon')
@@ -60,7 +60,7 @@ def check_position(chrom, pos, motif_positions):
     
 def label_positions(p, motif_positions, modfile, ref, q):
     '''
-    read the appropriate bit of the modfile to get the read info
+    read the appropriate piece of the modfile to get the read info
     for each meth call in the read info, check if it's part of a relevant meth motif
     save out the positions with relevant motifs
     '''
